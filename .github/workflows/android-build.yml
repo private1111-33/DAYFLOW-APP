@@ -1,4 +1,4 @@
-name: Build DAYFLOW debug APK
+name: Build DAYFLOW debug APK and UI screenshots
 
 on:
   workflow_dispatch:
@@ -27,3 +27,52 @@ jobs:
         with:
           name: DAYFLOW-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+  screenshots:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: DAYFLOW-debug-apk
+          path: apk
+      - name: Run app on Android emulator and capture screens
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            mkdir -p screenshots
+            adb install apk/app-debug.apk
+            adb shell monkey -p com.dayflow.app 1
+            sleep 8
+            adb shell screencap -p /sdcard/home.png
+            adb pull /sdcard/home.png screenshots/01-home.png
+            adb shell input tap 270 2250
+            sleep 2
+            adb shell screencap -p /sdcard/planner.png
+            adb pull /sdcard/planner.png screenshots/02-planner.png
+            adb shell input tap 450 2250
+            sleep 2
+            adb shell screencap -p /sdcard/alarms.png
+            adb pull /sdcard/alarms.png screenshots/03-alarms.png
+            adb shell input tap 630 2250
+            sleep 2
+            adb shell screencap -p /sdcard/vocabulary.png
+            adb pull /sdcard/vocabulary.png screenshots/04-vocabulary.png
+            adb shell input tap 810 2250
+            sleep 3
+            adb shell screencap -p /sdcard/music.png
+            adb pull /sdcard/music.png screenshots/05-music.png
+            adb shell input tap 990 2250
+            sleep 2
+            adb shell screencap -p /sdcard/progress.png
+            adb pull /sdcard/progress.png screenshots/06-progress.png
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: DAYFLOW-ui-screenshots
+          path: screenshots/*.png
