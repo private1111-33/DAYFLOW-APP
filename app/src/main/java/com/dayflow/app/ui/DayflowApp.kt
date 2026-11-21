@@ -1,7 +1,6 @@
 package com.dayflow.app.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,6 +11,9 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import com.dayflow.app.ui.screens.*
 import com.dayflow.app.ui.theme.Background
+import com.dayflow.app.ui.theme.Surface
+import com.dayflow.app.ui.theme.SurfaceElevated
+import com.dayflow.app.ui.theme.TextSecondary
 
 private data class NavItem(val route: String, val label: String, val icon: ImageVector)
 
@@ -22,48 +24,45 @@ fun DayflowApp() {
         NavItem("home", "Home", Icons.Filled.Home),
         NavItem("planner", "Planner", Icons.Filled.CalendarMonth),
         NavItem("alarms", "Alarms", Icons.Filled.Alarm),
-        NavItem("vocabulary", "Words", Icons.Filled.MenuBook),
-        NavItem("music", "Music", Icons.Filled.MusicNote)
+        NavItem("vocabulary", "Vocabulary", Icons.Filled.MenuBook),
+        NavItem("music", "Music", Icons.Filled.MusicNote),
+        NavItem("progress", "Progress", Icons.Filled.BarChart)
     )
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-
+    val entry by navController.currentBackStackEntryAsState()
+    val route = entry?.destination?.route
     Scaffold(
         containerColor = Background,
         bottomBar = {
-            NavigationBar(containerColor = com.dayflow.app.ui.theme.Surface) {
+            NavigationBar(containerColor = Surface, contentColor = MaterialTheme.colorScheme.onSurface) {
                 items.forEach { item ->
                     NavigationBarItem(
-                        selected = currentRoute == item.route,
+                        selected = route == item.route,
                         onClick = {
                             navController.navigate(item.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) },
+                        label = { Text(item.label, maxLines = 1, style = MaterialTheme.typography.labelSmall) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = com.dayflow.app.ui.theme.SurfaceElevated,
-                            unselectedIconColor = com.dayflow.app.ui.theme.TextSecondary,
-                            unselectedTextColor = com.dayflow.app.ui.theme.TextSecondary
+                            indicatorColor = SurfaceElevated,
+                            unselectedIconColor = TextSecondary,
+                            unselectedTextColor = TextSecondary
                         )
                     )
                 }
             }
         }
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "home",
-            modifier = Modifier.padding(padding)
-        ) {
-            composable("home") { HomeScreen(onOpenProgress = { navController.navigate("progress") }, onOpenSettings = { navController.navigate("settings") }) }
+        NavHost(navController, startDestination = "home", modifier = Modifier.padding(padding)) {
+            composable("home") { HomeScreen(
+                onOpenProgress = { navController.navigate("progress") },
+                onOpenSettings = { navController.navigate("settings") }
+            ) }
             composable("planner") { PlannerScreen() }
             composable("alarms") { AlarmsScreen() }
             composable("vocabulary") { VocabularyScreen() }
