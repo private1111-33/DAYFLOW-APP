@@ -1,12 +1,17 @@
 package com.dayflow.app.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dayflow.app.data.AlarmStore
 import com.dayflow.app.data.LocalStore
@@ -23,91 +28,115 @@ fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
     val alarms = remember { AlarmStore.all(context).filter { it.enabled } }
     val completed = tasks.count { it.done }
     val pending = tasks.filter { !it.done }.sortedBy { it.time }
+    val learned = words.count { it.learned }
+    val percent = if (tasks.isEmpty()) 0 else completed * 100 / tasks.size
     val nextAlarm = alarms.sortedWith(compareBy({ it.hour }, { it.minute })).firstOrNull()
     val greeting = when (java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) {
-        in 5..11 -> "Good morning."
-        in 12..17 -> "Good afternoon."
-        else -> "Good evening."
+        in 5..11 -> "Good Morning,"
+        in 12..17 -> "Good Afternoon,"
+        else -> "Good Evening,"
     }
     ScreenColumn {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text(SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date()).uppercase(),
-                    color = TextSecondary, style = MaterialTheme.typography.labelMedium)
-                Text(greeting, color = TextPrimary, style = MaterialTheme.typography.headlineMedium)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(48.dp).clip(CircleShape), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.TaskAlt, null, tint = BurgundyLight, modifier = Modifier.size(42.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text("DAYFLOW", color = TextPrimary, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Your Personal Daily System", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
             }
             IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, "Settings", tint = TextPrimary) }
         }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+            Column {
+                Text(greeting, color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text("Let's make today productive.", color = TextSecondary)
+            }
+            Text(SimpleDateFormat("EEE, MMM d", Locale.ENGLISH).format(Date()), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        }
         DayflowCard {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("TODAY'S FOCUS", color = TextSecondary, style = MaterialTheme.typography.labelMedium)
-                    Text("Keep your day moving", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                    Text("Your daily overview", color = TextSecondary)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(116.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        progress = { percent / 100f },
+                        modifier = Modifier.fillMaxSize(),
+                        strokeWidth = 9.dp,
+                        color = BurgundyLight,
+                        trackColor = SurfaceElevated
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("$percent%", color = TextPrimary, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                        Text("Today", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                        Text("Complete", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    }
                 }
-                CircularProgressIndicator(progress = { if (tasks.isEmpty()) 0f else completed.toFloat() / tasks.size },
-                    color = BurgundyLight, trackColor = SurfaceElevated)
-            }
-            LinearProgressIndicator(progress = { if (tasks.isEmpty()) 0f else completed.toFloat() / tasks.size },
-                modifier = Modifier.fillMaxWidth(), color = BurgundyLight, trackColor = SurfaceElevated)
-            Text("$completed of ${tasks.size} tasks completed", color = TextSecondary)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            DayflowCardWeighted(Modifier.weight(1f)) {
-                Icon(Icons.Default.CheckCircle, null, tint = BurgundyLight)
-                Text(completed.toString().padStart(2, '0'), style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-                Text("Completed", color = TextSecondary)
-            }
-            DayflowCardWeighted(Modifier.weight(1f)) {
-                Icon(Icons.Default.Alarm, null, tint = BurgundyLight)
-                Text(nextAlarm?.let { String.format(Locale.getDefault(), "%02d:%02d", it.hour, it.minute) } ?: "--:--",
-                    style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-                Text("Next alarm", color = TextSecondary)
-            }
-        }
-        DayflowCard {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Upcoming tasks", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                Text("${pending.size} left", color = BurgundyLight)
-            }
-            if (pending.isEmpty()) Text("No pending tasks. Your schedule is clear.", color = TextSecondary)
-            else pending.take(3).forEach { task ->
-                TaskLine(task.title, task.time, task.done)
-            }
-        }
-        DayflowCard {
-            Text("Vocabulary", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-            Text("${words.size} saved · ${words.count { !it.learned }} to review", color = TextSecondary)
-        }
-        DayflowCard {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("Your progress", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
-                    Text("See your activity from real saved data", color = TextSecondary)
+                Spacer(Modifier.width(18.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MetricLine(Success, completed.toString(), "Completed")
+                    MetricLine(BurgundyLight, tasks.size.toString(), "Total tasks")
+                    MetricLine(Warning, (tasks.size - completed).toString(), "Remaining")
                 }
-                IconButton(onClick = onOpenProgress) { Icon(Icons.Default.ArrowForward, null, tint = BurgundyLight) }
             }
         }
         DayflowCard {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("Now playing", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
-                    Text("Choose music from your library", color = TextSecondary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Alarm, null, tint = BurgundyLight, modifier = Modifier.size(34.dp))
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Next Alarm", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    Text(nextAlarm?.let { String.format(Locale.ENGLISH, "%d:%02d %s", if (it.hour % 12 == 0) 12 else it.hour % 12, it.minute, if (it.hour < 12) "AM" else "PM") } ?: "No alarm set",
+                        color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text(nextAlarm?.label?.ifBlank { "Daily reminder" } ?: "Create a reminder in Alarms", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
-                Icon(Icons.Default.MusicNote, null, tint = BurgundyLight)
+                Icon(Icons.Default.ChevronRight, null, tint = TextSecondary)
+            }
+        }
+        DayflowCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.MenuBook, null, tint = BurgundyLight, modifier = Modifier.size(34.dp))
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Vocabulary", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+                    Text("$words.size words".replace("WordEntry", "words") + " · $learned learned", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    LinearProgressIndicator(
+                        progress = { if (words.isEmpty()) 0f else learned.toFloat() / words.size },
+                        modifier = Modifier.fillMaxWidth(), color = BurgundyLight, trackColor = SurfaceElevated
+                    )
+                }
+                Text(if (words.isEmpty()) "0%" else "${learned * 100 / words.size}%", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Upcoming Tasks", color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            TextButton(onClick = onOpenProgress) { Text("See All →", color = BurgundyLight) }
+        }
+        if (pending.isEmpty()) {
+            DayflowCard { Text("No pending tasks. Your schedule is clear.", color = TextSecondary) }
+        } else {
+            pending.take(3).forEach { task ->
+                DayflowCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.RadioButtonUnchecked, null, tint = BurgundyLight)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(task.title, color = TextPrimary, fontWeight = FontWeight.Medium)
+                            Text(task.time.ifBlank { "Today" }, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                        }
+                        Text("Open", color = BurgundyLight, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TaskLine(title: String, time: String, done: Boolean) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(if (done) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked, null,
-                tint = if (done) Success else TextSecondary)
-            Text(title, color = TextPrimary)
+private fun MetricLine(color: Color, value: String, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        Box(Modifier.size(10.dp).clip(CircleShape).then(Modifier), contentAlignment = Alignment.Center) {
+            Surface(Modifier.fillMaxSize(), shape = CircleShape, color = color) {}
         }
-        Text(time, color = TextSecondary)
+        Text(value, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+        Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
     }
 }
