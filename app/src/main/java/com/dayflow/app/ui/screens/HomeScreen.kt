@@ -1,6 +1,7 @@
 package com.dayflow.app.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -97,7 +98,7 @@ fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Vocabulary", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
-                    Text("$words.size words".replace("WordEntry", "words") + " · $learned learned", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text("${words.size} words · $learned learned", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                     LinearProgressIndicator(
                         progress = { if (words.isEmpty()) 0f else learned.toFloat() / words.size },
                         modifier = Modifier.fillMaxWidth(), color = BurgundyLight, trackColor = SurfaceElevated
@@ -133,9 +134,7 @@ fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
 @Composable
 private fun MetricLine(color: Color, value: String, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        Box(Modifier.size(10.dp).clip(CircleShape).then(Modifier), contentAlignment = Alignment.Center) {
-            Surface(Modifier.fillMaxSize(), shape = CircleShape, color = color) {}
-        }
+        Box(Modifier.size(10.dp).clip(CircleShape).background(color))
         Text(value, color = TextPrimary, fontWeight = FontWeight.SemiBold)
         Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
     }
