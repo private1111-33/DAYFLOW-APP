@@ -94,7 +94,7 @@ fun AlarmsScreen() {
             onDismissRequest = { showAdd = false },
             title = { Text("New daily alarm") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(androidx.compose.ui.unit.dp(12))) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Alarm label") }, singleLine = true)
                     OutlinedButton(onClick = {
                         TimePickerDialog(context, { _, h, m -> pickedHour = h; pickedMinute = m }, pickedHour, pickedMinute, false).show()
