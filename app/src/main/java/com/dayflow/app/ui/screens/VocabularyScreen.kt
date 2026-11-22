@@ -1,6 +1,11 @@
 package com.dayflow.app.ui.screens
 
 import android.speech.tts.TextToSpeech
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileUpload
+import com.dayflow.app.data.ExcelVocabularyImporter
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,6 +32,16 @@ fun VocabularyScreen() {
     val context = LocalContext.current
     val words = remember { mutableStateListOf<WordEntry>().apply { addAll(LocalStore.words(context)) } }
     var showAdd by remember { mutableStateOf(false) }
+    var editingWord by remember { mutableStateOf<WordEntry?>(null) }
+    var importMessage by remember { mutableStateOf<String?>(null) }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching { ExcelVocabularyImporter.read(context, uri) }
+            .onSuccess { imported ->
+                val existing = words.map { it.word.lowercase() to it.meaning.lowercase() }.toSet()
+                val fresh = imported.filterNot { (it.word.lowercase() to it.meaning.lowercase()) in existing }
+                words.addAll(0, fresh); save(); importMessage = "${fresh.size} words imported"
+            }.onFailure { importMessage = "Import failed: ${it.message ?: "Invalid Excel file"}" }
+    }
     var word by remember { mutableStateOf("") }
     var meaning by remember { mutableStateOf("") }
     var example by remember { mutableStateOf("") }
@@ -62,7 +77,10 @@ fun VocabularyScreen() {
                 Text("Vocabulary", color = TextPrimary, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
                 Text("Your daily English practice", color = TextSecondary)
             }
-            IconButton(onClick = { showAdd = true }) { Icon(Icons.Default.Add, "Add word", tint = BurgundyLight) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { importLauncher.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream")) }) { Icon(Icons.Default.FileUpload, "Import Excel", tint = BurgundyLight) }
+                IconButton(onClick = { showAdd = true }) { Icon(Icons.Default.Add, "Add word", tint = BurgundyLight) }
+            }
         }
         DayflowCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -164,6 +182,9 @@ fun VocabularyScreen() {
                     }
                     Text(if (entry.learned) "Learned" else "Review", color = if (entry.learned) Success else BurgundyLight,
                         style = MaterialTheme.typography.labelSmall)
+                    IconButton(onClick = { editingWord = entry; word = entry.word; meaning = entry.meaning; example = entry.example; showAdd = true }) {
+                        Icon(Icons.Default.Edit, "Edit word", tint = BurgundyLight)
+                    }
                     IconButton(onClick = { pendingDelete = entry }) {
                         Icon(Icons.Default.Delete, "Delete word", tint = TextSecondary)
                     }
@@ -172,10 +193,12 @@ fun VocabularyScreen() {
         }
     }
 
+    if (importMessage != null) AlertDialog(onDismissRequest = { importMessage = null }, title = { Text("Excel import") }, text = { Text(importMessage!!) }, confirmButton = { TextButton(onClick = { importMessage = null }) { Text("OK") } })
+
     if (showAdd) {
         AlertDialog(
             onDismissRequest = { showAdd = false },
-            title = { Text("Add vocabulary") },
+            title = { Text(if (editingWord == null) "Add vocabulary" else "Edit vocabulary") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(value = word, onValueChange = { word = it }, label = { Text("English word") }, singleLine = true)
@@ -186,12 +209,14 @@ fun VocabularyScreen() {
             confirmButton = {
                 TextButton(onClick = {
                     if (word.isNotBlank() && meaning.isNotBlank()) {
-                        words.add(0, WordEntry(System.currentTimeMillis(), word.trim(), meaning.trim(), example.trim()))
-                        save(); word = ""; meaning = ""; example = ""; index = 0; showAdd = false
+                        val old = editingWord
+                        if (old == null) words.add(0, WordEntry(System.currentTimeMillis(), word.trim(), meaning.trim(), example.trim()))
+                        else { val i = words.indexOfFirst { it.id == old.id }; if (i >= 0) words[i] = old.copy(word = word.trim(), meaning = meaning.trim(), example = example.trim()) }
+                        save(); word = ""; meaning = ""; example = ""; editingWord = null; index = 0; showAdd = false
                     }
                 }) { Text("Save", color = BurgundyLight) }
             },
-            dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showAdd = false; editingWord = null; word = ""; meaning = ""; example = "" }) { Text("Cancel") } }
         )
     }
 

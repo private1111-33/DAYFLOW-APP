@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +39,7 @@ fun PlannerScreen() {
     var title by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
     var pendingDelete by remember { mutableStateOf<DayTask?>(null) }
+    var editingTask by remember { mutableStateOf<DayTask?>(null) }
 
     val selectedEpoch = selected.toEpochDay()
     val dayTasks = tasks.filter { it.date == selectedEpoch }
@@ -139,6 +141,9 @@ fun PlannerScreen() {
                             Text(task.time.ifBlank { "Any time" }, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
                             Text(task.title, color = if (task.done) TextSecondary else TextPrimary)
                         }
+                        IconButton(onClick = { editingTask = task; title = task.title; time = task.time; showAdd = true }) {
+                            Icon(Icons.Default.Edit, "Edit task", tint = BurgundyLight)
+                        }
                         IconButton(onClick = { pendingDelete = task }) {
                             Icon(Icons.Default.Delete, "Delete task", tint = TextSecondary)
                         }
@@ -151,7 +156,7 @@ fun PlannerScreen() {
     if (showAdd) {
         AlertDialog(
             onDismissRequest = { showAdd = false },
-            title = { Text("New task") },
+            title = { Text(if (editingTask == null) "New task" else "Edit task") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Task name") }, singleLine = true)
@@ -166,13 +171,15 @@ fun PlannerScreen() {
             confirmButton = {
                 TextButton(onClick = {
                     if (title.isNotBlank()) {
-                        tasks.add(DayTask(System.currentTimeMillis(), title.trim(), time.trim(), false, selectedEpoch))
+                        val old = editingTask
+                        if (old == null) tasks.add(DayTask(System.currentTimeMillis(), title.trim(), time.trim(), false, selectedEpoch))
+                        else { val i = tasks.indexOfFirst { it.id == old.id }; if (i >= 0) tasks[i] = old.copy(title = title.trim(), time = time.trim()) }
                         LocalStore.saveTasks(context, tasks.toList())
-                        title = ""; time = ""; showAdd = false
+                        title = ""; time = ""; editingTask = null; showAdd = false
                     }
                 }) { Text("Save", color = BurgundyLight) }
             },
-            dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showAdd = false; editingTask = null; title = ""; time = "" }) { Text("Cancel") } }
         )
     }
 

@@ -1,6 +1,10 @@
 package com.dayflow.app.ui
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -65,7 +69,11 @@ fun DayflowApp() {
             }
         }
     ) { padding ->
-        NavHost(navController, startDestination = "home", modifier = Modifier.padding(padding)) {
+        NavHost(navController, startDestination = "home", modifier = Modifier.padding(padding),
+            enterTransition = { fadeIn() + slideInHorizontally(initialOffsetX = { it / 12 }) },
+            exitTransition = { fadeOut() + slideOutHorizontally(targetOffsetX = { -it / 16 }) },
+            popEnterTransition = { fadeIn() + slideInHorizontally(initialOffsetX = { -it / 12 }) },
+            popExitTransition = { fadeOut() + slideOutHorizontally(targetOffsetX = { it / 16 }) }) {
             composable("home") {
                 HomeScreen(
                     onOpenProgress = { navController.navigate("progress") { launchSingleTop = true } },
