@@ -86,6 +86,7 @@ private object MusicDiscoveryApi {
         (catalog + lyricMatches).distinctBy { it.title.lowercase() + "|" + it.artist.lowercase() }.take(40)
     }
     suspend fun lyrics(track: FoundTrack): LyricsData? = withContext(Dispatchers.IO) {
+        if (track.lyricsText.isNotBlank()) return@withContext LyricsData(track.lyricsText, track.hasSyncedLyrics)
         val name = URLEncoder.encode(track.title, "UTF-8")
         val artist = URLEncoder.encode(track.artist, "UTF-8")
         val response = get("https://lrclib.net/api/search?track_name=$name&artist_name=$artist")
@@ -151,7 +152,7 @@ fun MusicSearchScreen() {
             value = query,
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Song, artist or album") },
+            placeholder = { Text("Song, artist or lyrics") },
             singleLine = true,
             trailingIcon = {
                 IconButton(onClick = { search() }) { Icon(Icons.Default.Search, "Search") }
