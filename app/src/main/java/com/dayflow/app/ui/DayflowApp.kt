@@ -2,10 +2,10 @@ package com.dayflow.app.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.MenuBook
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import kotlinx.coroutines.delay
@@ -25,10 +25,10 @@ private data class NavItem(val route: String, val label: String, val icon: Image
 fun DayflowApp() {
     val navController = rememberNavController()
     val items = listOf(
-        NavItem("home", "Home", Icons.Filled.Home),
-        NavItem("vocabulary", "Learn", Icons.Filled.MenuBook),
-        NavItem("progress", "Stats", Icons.Filled.BarChart),
-        NavItem("settings", "Settings", Icons.Filled.Settings)
+        NavItem("home", "Home", Icons.Rounded.Home),
+        NavItem("vocabulary", "Learn", Icons.Rounded.MenuBook),
+        NavItem("progress", "Stats", Icons.Rounded.BarChart),
+        NavItem("settings", "Settings", Icons.Rounded.Settings)
     )
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
