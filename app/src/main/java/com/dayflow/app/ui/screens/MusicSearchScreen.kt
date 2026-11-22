@@ -176,7 +176,7 @@ fun MusicSearchScreen() {
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = {
+                    if (track.preview.isNotBlank()) OutlinedButton(onClick = {
                         if (playingId == track.id) {
                             runCatching { player?.pause() }
                             playingId = null
@@ -202,7 +202,7 @@ fun MusicSearchScreen() {
                             lyricsLoading = false
                         }
                     }) { Text("Lyrics") }
-                    OutlinedButton(onClick = {
+                    if (track.preview.isNotBlank()) OutlinedButton(onClick = {
                         scope.launch {
                             val file = File(context.filesDir, "music-previews/${track.id}.m4a")
                             try {
