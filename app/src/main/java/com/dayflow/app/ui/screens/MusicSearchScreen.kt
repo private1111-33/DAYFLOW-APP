@@ -128,9 +128,18 @@ fun MusicSearchScreen() {
     var savedIds by remember { mutableStateOf(setOf<Long>()) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var artworkColor by remember { mutableStateOf(Color(0xFFD12D5B)) }
+    var activeLyricLine by remember { mutableIntStateOf(-1) }
 
     DisposableEffect(Unit) {
         onDispose { runCatching { player?.stop(); player?.release() }; player = null }
+    }
+
+    LaunchedEffect(playingId, lyrics) {
+        while (playingId != null) {
+            val position = runCatching { player?.currentPosition?.toInt() ?: 0 }.getOrDefault(0)
+            activeLyricLine = lyrics?.let { parseLrc(it.text).indexOfLast { line -> line.first <= position } } ?: -1
+            kotlinx.coroutines.delay(120)
+        }
     }
 
     fun search() {
@@ -231,7 +240,20 @@ fun MusicSearchScreen() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(if (lyric.synced) "Synced lyrics" else "Lyrics", fontWeight = FontWeight.SemiBold)
-                        Text(lyric.text, color = MaterialTheme.colorScheme.onSurface)
+                        val timedLines = remember(lyric.text) { parseLrc(lyric.text) }
+                        if (lyric.synced && timedLines.isNotEmpty()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                timedLines.forEachIndexed { index, line ->
+                                    Text(line.second,
+                                        color = if (index == activeLyricLine && playingId == track.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = if (index == activeLyricLine && playingId == track.id) FontWeight.Bold else FontWeight.Normal,
+                                        modifier = Modifier.fillMaxWidth().clickable {
+                                            runCatching { player?.seekTo(line.first.toLong()) }
+                                            activeLyricLine = index
+                                        })
+                                }
+                            }
+                        } else Text(lyric.text, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -288,6 +310,19 @@ private fun TrackArtwork(url: String, modifier: Modifier, onColor: (Color) -> Un
     }
 }
 
+private fun parseLrc(source: String): List<Pair<Int, String>> {
+    val pattern = Regex("\\[(\\d{1,2}):(\\d{2})(?:\\.(\\d{1,3}))?\\]")
+    return source.lineSequence().flatMap { line ->
+        val matches = pattern.findAll(line).toList()
+        val text = pattern.replace(line, "").trim()
+        matches.mapNotNull { match ->
+            val minutes = match.groupValues[1].toIntOrNull() ?: return@mapNotNull null
+            val seconds = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
+            val fraction = match.groupValues[3].padEnd(3, '0').take(3).toIntOrNull() ?: 0
+            (minutes * 60_000 + seconds * 1000 + fraction) to text
+        }
+    }.filter { it.second.isNotBlank() }.sortedBy { it.first }.toList()
+}
 private fun formatDuration(ms: Long): String {
     val seconds = (ms / 1000).coerceAtLeast(0)
     return "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
