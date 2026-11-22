@@ -1,8 +1,5 @@
 package com.dayflow.app.ui.theme
-
 import androidx.compose.ui.graphics.Color
-
-// DAYFLOW light palette: warm white surfaces with a deep burgundy accent.
 val Background = Color(0xFFFAF7F8)
 val Surface = Color(0xFFFFFFFF)
 val SurfaceElevated = Color(0xFFF2E8EC)
@@ -13,3 +10,11 @@ val TextSecondary = Color(0xFF7B7076)
 val Divider = Color(0xFFE7DCE1)
 val Success = Color(0xFF36866B)
 val Warning = Color(0xFFC58A31)
+val DarkBackground = Color(0xFF090809)
+val DarkSurface = Color(0xFF171416)
+val DarkSurfaceElevated = Color(0xFF241D21)
+val DarkBurgundy = Color(0xFFD91B35)
+val DarkBurgundyLight = Color(0xFFEF5367)
+val DarkTextPrimary = Color(0xFFF7F1F3)
+val DarkTextSecondary = Color(0xFFB8AEB3)
+val DarkDivider = Color(0xFF382D33)
