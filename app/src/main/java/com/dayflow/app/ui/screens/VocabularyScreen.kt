@@ -1,20 +1,20 @@
 package com.dayflow.app.ui.screens
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.Search
 
 import android.speech.tts.TextToSpeech
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FileUpload
 import com.dayflow.app.data.ExcelVocabularyImporter
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -80,8 +80,8 @@ fun VocabularyScreen() {
                 Text("Your daily English practice", color = TextSecondary)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { importLauncher.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream")) }) { Icon(Icons.Default.FileUpload, "Import Excel", tint = BurgundyLight) }
-                IconButton(onClick = { showAdd = true }) { Icon(Icons.Default.Add, "Add word", tint = BurgundyLight) }
+                IconButton(onClick = { importLauncher.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream")) }) { Icon(Icons.Rounded.FileUpload, "Import Excel", tint = BurgundyLight) }
+                IconButton(onClick = { showAdd = true }) { Icon(Icons.Rounded.Add, "Add word", tint = BurgundyLight) }
             }
         }
         DayflowCard {
@@ -122,7 +122,7 @@ fun VocabularyScreen() {
                     Text(current.word, color = TextPrimary, style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
                     IconButton(onClick = { tts?.speak(current.word, TextToSpeech.QUEUE_FLUSH, null, "dayflow_word") }) {
-                        Icon(Icons.Default.VolumeUp, "Pronounce", tint = BurgundyLight)
+                        Icon(Icons.Rounded.VolumeUp, "Pronounce", tint = BurgundyLight)
                     }
                 }
                 if (reveal) {
@@ -155,7 +155,7 @@ fun VocabularyScreen() {
                     colors = ButtonDefaults.buttonColors(containerColor = Burgundy),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Check, null)
+                    Icon(Icons.Rounded.Check, null)
                     Spacer(Modifier.width(6.dp))
                     Text("I Know")
                 }
@@ -164,7 +164,7 @@ fun VocabularyScreen() {
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Favorite, null, tint = TextSecondary)
+                    Icon(Icons.Rounded.Favorite, null, tint = TextSecondary)
                     Spacer(Modifier.width(6.dp))
                     Text("Hard", color = TextPrimary)
                 }
@@ -181,7 +181,7 @@ fun VocabularyScreen() {
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             placeholder = { Text("Search vocabulary") },
-            leadingIcon = { Icon(Icons.Default.Search, null, tint = TextSecondary) },
+            leadingIcon = { Icon(Icons.Rounded.Search, null, tint = TextSecondary) },
             shape = RoundedCornerShape(18.dp)
         )
         words.filter { it.word.contains(searchQuery, true) || it.meaning.contains(searchQuery, true) }.forEach { entry ->
@@ -194,10 +194,10 @@ fun VocabularyScreen() {
                     Text(if (entry.learned) "Learned" else "Review", color = if (entry.learned) Success else BurgundyLight,
                         style = MaterialTheme.typography.labelSmall)
                     IconButton(onClick = { editingWord = entry; word = entry.word; meaning = entry.meaning; example = entry.example; showAdd = true }) {
-                        Icon(Icons.Default.Edit, "Edit word", tint = BurgundyLight)
+                        Icon(Icons.Rounded.Edit, "Edit word", tint = BurgundyLight)
                     }
                     IconButton(onClick = { pendingDelete = entry }) {
-                        Icon(Icons.Default.Delete, "Delete word", tint = TextSecondary)
+                        Icon(Icons.Rounded.Delete, "Delete word", tint = TextSecondary)
                     }
                 }
             }
