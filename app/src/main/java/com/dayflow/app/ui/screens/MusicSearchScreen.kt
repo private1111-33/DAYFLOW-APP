@@ -255,7 +255,7 @@ fun MusicSearchScreen() {
                                         color = if (index == activeLyricLine && playingId == track.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = if (index == activeLyricLine && playingId == track.id) FontWeight.Bold else FontWeight.Normal,
                                         modifier = Modifier.fillMaxWidth().clickable {
-                                            runCatching { player?.seekTo(line.first.toLong()) }
+                                            runCatching { player?.seekTo(line.first) }
                                             activeLyricLine = index
                                         })
                                 }
