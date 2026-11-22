@@ -137,7 +137,8 @@ fun PrivateRoomScreen(onBack: () -> Unit) {
                     put(MediaStore.MediaColumns.RELATIVE_PATH, VAULT_FOLDER)
                 }
                 val target = resolver.insert(vaultCollection, values) ?: error("Cannot create encrypted vault item")
-                val targetStream = resolver.openOutputStream(target) ?: error("Cannot save encrypted vault item")\n                encryptVaultFile(source, targetStream, PRIVATE_ROOM_PASSWORD)
+                val targetStream = resolver.openOutputStream(target) ?: error("Cannot save encrypted vault item")
+                encryptVaultFile(source, targetStream, PRIVATE_ROOM_PASSWORD)
                 savedUris += sourceUri
                 if (sourceUri.authority == "media") mediaStoreUris += sourceUri
             }.onFailure { failed++ }
@@ -169,7 +170,8 @@ fun PrivateRoomScreen(onBack: () -> Unit) {
                 if (Build.VERSION.SDK_INT >= 29) put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
             val outputUri = resolver.insert(collection, values) ?: error("Could not create gallery item")
-            val restoredOutput = resolver.openOutputStream(outputUri) ?: error("Could not write restored file")\n            decryptVaultFile(encryptedInput, restoredOutput, PRIVATE_ROOM_PASSWORD)
+            val restoredOutput = resolver.openOutputStream(outputUri) ?: error("Could not write restored file")
+            decryptVaultFile(encryptedInput, restoredOutput, PRIVATE_ROOM_PASSWORD)
             if (Build.VERSION.SDK_INT >= 29) {
                 resolver.update(outputUri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
             }
