@@ -4,18 +4,18 @@ plugins {
  id("org.jetbrains.kotlin.plugin.compose")
 }
 android {
- namespace="com.dayflow.app"
- compileSdk=35
+ namespace = "com.dayflow.app"
+ compileSdk = 35
  defaultConfig {
-  applicationId="com.dayflow.app"
-  minSdk=26
-  targetSdk=35
-  versionCode=5
-  versionName="0.4.0"
+  applicationId = "com.dayflow.app"
+  minSdk = 26
+  targetSdk = 35
+  versionCode = 5
+  versionName = "0.4.0"
  }
- buildFeatures { compose=true }
- compileOptions { sourceCompatibility=JavaVersion.VERSION_17; targetCompatibility=JavaVersion.VERSION_17 }
- kotlinOptions { jvmTarget="17" }
+ buildFeatures { compose = true }
+ compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+ kotlinOptions { jvmTarget = "17" }
 }
 dependencies {
  implementation(platform("androidx.compose:compose-bom:2024.12.01"))
