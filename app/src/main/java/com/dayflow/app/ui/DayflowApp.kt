@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -41,7 +42,7 @@ fun DayflowApp() {
     Scaffold(
         containerColor = Background,
         bottomBar = {
-            NavigationBar(containerColor = Surface, contentColor = MaterialTheme.colorScheme.onSurface) {
+            if (route != "splash") NavigationBar(containerColor = Surface, contentColor = MaterialTheme.colorScheme.onSurface) {
                 items.forEach { item ->
                     NavigationBarItem(
                         selected = route == item.route,
@@ -60,7 +61,14 @@ fun DayflowApp() {
             }
         }
     ) { padding ->
-        NavHost(navController, startDestination = "home", modifier = Modifier.padding(padding)) {
+        NavHost(navController, startDestination = "splash", modifier = Modifier.padding(padding)) {
+            composable("splash") {
+                LaunchedEffect(Unit) {
+                    delay(1700)
+                    navController.navigate("home") { popUpTo("splash") { inclusive = true } }
+                }
+                SplashScreen()
+            }
             composable("home") {
                 HomeScreen(
                     onOpenProgress = { openTab("progress") },
