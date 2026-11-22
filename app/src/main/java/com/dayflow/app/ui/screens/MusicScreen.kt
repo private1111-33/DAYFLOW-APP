@@ -6,6 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,9 +16,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.border
+import androidx.compose.animation.core.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.URL
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -51,11 +62,31 @@ fun MusicScreen() {
     var dragValue by remember { mutableFloatStateOf(0f) }
     var shuffle by remember { mutableStateOf(false) }
     var repeatAll by remember { mutableStateOf(false) }
+    var spotifyUrl by remember { mutableStateOf("") }
+    var spotifyInfo by remember { mutableStateOf<String?>(null) }
+    var spotifyError by remember { mutableStateOf<String?>(null) }
+    var lookingUpSpotify by remember { mutableStateOf(false) }
+    var lyricsQuery by remember { mutableStateOf("") }
+    var lyricsLines by remember { mutableStateOf<List<Pair<Long, String>>>(emptyList()) }
+    var plainLyrics by remember { mutableStateOf<String?>(null) }
+    var lyricsError by remember { mutableStateOf<String?>(null) }
+    var loadingLyrics by remember { mutableStateOf(false) }
+    var lyricsTitle by remember { mutableStateOf<String?>(null) }
+    val lyricsListState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val vinylRotation = remember { Animatable(0f) }
+    LaunchedEffect(playing) {
+        if (playing) {
+            while (true) vinylRotation.animateTo(vinylRotation.value + 360f, animationSpec = tween(4500, easing = LinearEasing))
+        }
+    }
 
     fun clock(ms: Long): String {
         val total = (ms / 1000).coerceAtLeast(0)
         return "%d:%02d".format(total / 60, total % 60)
     }
+
+    LaunchedEffect(currentIndex, tracks.size) { if (tracks.isNotEmpty()) lyricsQuery = tracks.getOrNull(currentIndex)?.name.orEmpty() }
 
     LaunchedEffect(player) {
         while (true) {
@@ -145,10 +176,55 @@ fun MusicScreen() {
             Text("Music Player", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             IconButton(onClick = { picker.launch(arrayOf("audio/*")) }) { Icon(Icons.Default.MoreVert, "Import music", tint = MaterialTheme.colorScheme.primary) }
         }
+        DayflowCard {
+            Text("Add from Spotify", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(value = spotifyUrl, onValueChange = { spotifyUrl = it; spotifyError = null }, label = { Text("Paste Spotify track link") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Button(enabled = !lookingUpSpotify && spotifyUrl.isNotBlank(), onClick = {
+                scope.launch {
+                    lookingUpSpotify = true
+                    spotifyInfo = null
+                    spotifyError = null
+                    try {
+                        val result = withContext(Dispatchers.IO) {
+                            val endpoint = "https://open.spotify.com/oembed?url=" + Uri.encode(spotifyUrl.trim())
+                            val connection = URL(endpoint).openConnection()
+                            connection.connectTimeout = 10000
+                            connection.readTimeout = 10000
+                            connection.getInputStream().bufferedReader().use { JSONObject(it.readText()) }
+                        }
+                        spotifyInfo = result.optString("title").ifBlank { "Spotify track recognized" }
+                    } catch (_: Exception) {
+                        spotifyError = "Link not recognized. Paste a public Spotify track URL."
+                    } finally {
+                        lookingUpSpotify = false
+                    }
+                }
+            }) { Text(if (lookingUpSpotify) "Checking link…" else "Get track details") }
+            spotifyInfo?.let { Text("Found: $it", color = MaterialTheme.colorScheme.onSurface) }
+            spotifyError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            Text("Spotify links can identify a track, but Spotify does not provide its protected audio for download into DAYFLOW. Import an audio file you own or have permission to download to play it here.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        }
         Card(modifier = Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)) {
             Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.onPrimary.copy(alpha=.12f)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(112.dp))
+                Box(Modifier.fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxHeight(.88f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                        Box(Modifier.fillMaxSize().graphicsLayer { rotationZ = vinylRotation.value }.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Brush.radialGradient(listOf(androidx.compose.ui.graphics.Color(0xFF383838), androidx.compose.ui.graphics.Color(0xFF101010), androidx.compose.ui.graphics.Color(0xFF242424)))).border(2.dp, androidx.compose.ui.graphics.Color(0xFF777777), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+                            repeat(8) { ring ->
+                                Box(Modifier.fillMaxWidth(.30f + ring * .085f).aspectRatio(1f).border(if (ring % 2 == 0) 1.dp else .5.dp, androidx.compose.ui.graphics.Color.White.copy(alpha = if (ring % 2 == 0) .18f else .09f), androidx.compose.foundation.shape.CircleShape))
+                            }
+                            Box(Modifier.size(106.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color(0xFFB77A82), androidx.compose.ui.graphics.Color(0xFF642D39)))), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                    Icon(Icons.Default.MusicNote, null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(34.dp))
+                                    Text("DAYFLOW", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                    Box(Modifier.padding(top = 5.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(0xFF171717)))
+                                }
+                            }
+                            Box(Modifier.fillMaxWidth(.96f).height(2.dp).background(androidx.compose.ui.graphics.Color.White.copy(alpha = .10f)))
+                        }
+                        // Tone arm rests beside the disc, like a real turntable.
+                        Box(Modifier.align(Alignment.TopEnd).padding(end = 8.dp, top = 8.dp).width(7.dp).height(92.dp).graphicsLayer { rotationZ = -24f }.clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).background(androidx.compose.ui.graphics.Color(0xFFD6D0C7)))
+                        Box(Modifier.align(Alignment.TopEnd).padding(end = 3.dp, top = 2.dp).size(16.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(0xFFB7A99A)))
+                    }
                 }
                 Text(if(tracks.isEmpty()) "Nothing playing" else tracks.getOrNull(currentIndex)?.name ?: "Audio track", color=MaterialTheme.colorScheme.onPrimary, style=MaterialTheme.typography.headlineSmall, fontWeight=androidx.compose.ui.text.font.FontWeight.Bold, maxLines=1)
                 Text(if(tracks.isEmpty()) "Your offline music" else "DAYFLOW • Track ${currentIndex+1} of ${tracks.size}", color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.8f))
@@ -162,6 +238,101 @@ fun MusicScreen() {
                     IconButton(enabled=player!=null,onClick={player?.repeatMode=if(repeatAll)Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ALL}){Icon(Icons.Default.Repeat,"Repeat",tint=MaterialTheme.colorScheme.onPrimary.copy(alpha=if(repeatAll)1f else .65f))}
                 }
                 if(player==null) Text("Connecting to player…",color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.75f),style=MaterialTheme.typography.labelSmall)
+            }
+        }
+        DayflowCard {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Lyrics", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text("LRCLIB", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            }
+            OutlinedTextField(
+                value = lyricsQuery,
+                onValueChange = { lyricsQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Song title or artist") }
+            )
+            Button(
+                enabled = lyricsQuery.isNotBlank() && !loadingLyrics,
+                onClick = {
+                    scope.launch {
+                        loadingLyrics = true
+                        lyricsError = null
+                        lyricsLines = emptyList()
+                        plainLyrics = null
+                        lyricsTitle = null
+                        try {
+                            val matches = withContext(Dispatchers.IO) {
+                                val endpoint = "https://lrclib.net/api/search?q=" + Uri.encode(lyricsQuery.trim())
+                                val connection = URL(endpoint).openConnection()
+                                connection.connectTimeout = 10000
+                                connection.readTimeout = 10000
+                                connection.setRequestProperty("User-Agent", "DAYFLOW/0.4.0")
+                                val body = connection.getInputStream().bufferedReader().use { it.readText() }
+                                org.json.JSONArray(body)
+                            }
+                            if (matches.length() == 0) {
+                                lyricsError = "No lyrics found. Try adding the artist name."
+                            } else {
+                                val match = (0 until matches.length()).asSequence()
+                                    .map { matches.getJSONObject(it) }
+                                    .firstOrNull { it.optString("syncedLyrics").isNotBlank() || it.optString("plainLyrics").isNotBlank() }
+                                if (match == null) {
+                                    lyricsError = "Lyrics are not available for this track."
+                                } else {
+                                    lyricsTitle = listOf(match.optString("trackName"), match.optString("artistName")).filter { it.isNotBlank() }.joinToString(" • ")
+                                    val synced = match.optString("syncedLyrics")
+                                    if (synced.isNotBlank()) {
+                                        val parsed = Regex("""\[(\d{2}):(\d{2}\.\d{2,3})\](.*)""")
+                                        lyricsLines = synced.lines().flatMap { line ->
+                                            parsed.findAll(line).map { found ->
+                                                val min = found.groupValues[1].toLong()
+                                                val sec = found.groupValues[2].toDouble()
+                                                (min * 60000L + (sec * 1000).toLong()) to found.groupValues[3].trim()
+                                            }.toList()
+                                        }.sortedBy { it.first }.filter { it.second.isNotBlank() }
+                                    } else {
+                                        plainLyrics = match.optString("plainLyrics")
+                                    }
+                                }
+                            }
+                        } catch (_: Exception) {
+                            lyricsError = "Couldn't load lyrics. Check your internet connection and try again."
+                        } finally {
+                            loadingLyrics = false
+                        }
+                    }
+                }
+            ) { Text(if (loadingLyrics) "Searching…" else "Find lyrics") }
+            lyricsTitle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall) }
+            lyricsError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            if (lyricsLines.isNotEmpty()) {
+                val activeLine = lyricsLines.indexOfLast { it.first <= position }.coerceAtLeast(0)
+                LaunchedEffect(activeLine, lyricsLines) {
+                    if (activeLine < lyricsLines.size) lyricsListState.animateScrollToItem(activeLine)
+                }
+                LazyColumn(
+                    state = lyricsListState,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                    contentPadding = PaddingValues(vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    itemsIndexed(lyricsLines) { index, line ->
+                        Text(
+                            line.second,
+                            modifier = Modifier.fillMaxWidth(),
+                            color = if (index == activeLine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = if (index == activeLine) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (index == activeLine) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+                        )
+                    }
+                }
+                Text("Synced lyrics • follows playback", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            } else if (!plainLyrics.isNullOrBlank()) {
+                Text(plainLyrics!!, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
+                Text("Plain lyrics • not synchronized", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            } else if (lyricsError == null) {
+                Text("Search for the current song to display its lyrics here.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){

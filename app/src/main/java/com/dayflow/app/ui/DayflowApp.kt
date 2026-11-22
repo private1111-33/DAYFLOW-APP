@@ -1,5 +1,7 @@
 package com.dayflow.app.ui
 
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
@@ -19,6 +21,7 @@ private data class NavItem(val route: String, val label: String, val icon: Image
 
 @Composable
 fun DayflowApp() {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val navController = rememberNavController()
     val items = listOf(
         NavItem("home", "Home", Icons.Rounded.Home),
@@ -28,6 +31,20 @@ fun DayflowApp() {
     )
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
+    var lastBackPress by remember { mutableLongStateOf(0L) }
+    BackHandler(enabled = route != "splash") {
+        if (route != "home" && navController.previousBackStackEntry != null) {
+            navController.popBackStack()
+        } else {
+            val now = System.currentTimeMillis()
+            if (now - lastBackPress < 2000L) {
+                (context as? android.app.Activity)?.finish()
+            } else {
+                lastBackPress = now
+                Toast.makeText(context, "اضغط مرة أخرى للخروج", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
     fun openTab(target: String) {
         navController.navigate(target) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -81,8 +98,9 @@ fun DayflowApp() {
             composable("vocabulary") { VocabularyScreen() }
             composable("quiz") { QuizScreen(onBack = { openTab("home") }) }
             composable("music") { MusicScreen() }
+            composable("private-room") { PrivateRoomScreen(onBack = { navController.popBackStack() }) }
             composable("progress") { ProgressScreen(onBack = { openTab("home") }) }
-            composable("settings") { SettingsScreen(onBack = { openTab("home") }, onOpenMusic = { navController.navigate("music") }) }
+            composable("settings") { SettingsScreen(onBack = { openTab("home") }, onOpenMusic = { navController.navigate("music") }, onOpenPrivateRoom = { navController.navigate("private-room") }) }
         }
     }
 }
