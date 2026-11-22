@@ -21,7 +21,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onOpenMusic: () -> Unit = {}) {
     val context = LocalContext.current
     var pendingBackup by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
@@ -123,6 +123,13 @@ fun SettingsScreen(onBack: () -> Unit) {
         DayflowCard {
             Text("Learning Preferences", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
             Text("Your vocabulary and daily learning activity are stored on this device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DayflowCard(onClick = onOpenMusic) {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Music Settings", modifier = androidx.compose.ui.Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+                Text("›", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleLarge)
+            }
+            Text("Manage your music library and playback.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         DayflowCard {
             Text("Reminders & alarms", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
