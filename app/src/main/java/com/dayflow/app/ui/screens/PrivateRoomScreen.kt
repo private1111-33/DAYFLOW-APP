@@ -1,5 +1,8 @@
 package com.dayflow.app.ui.screens
 
+import android.app.Activity
+import android.app.Application
+import android.os.Bundle
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,6 +28,20 @@ private const val PRIVATE_ROOM_PASSWORD = "13225"
 fun PrivateRoomScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val folder = remember { File(context.filesDir, "private_room").apply { mkdirs() } }
+    DisposableEffect(context) {
+        val app = context.applicationContext as Application
+        val callbacks = object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityPaused(activity: Activity) { if (activity === context) unlocked = false }
+            override fun onActivityCreated(activity: Activity, state: Bundle?) {}
+            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {}
+        }
+        app.registerActivityLifecycleCallbacks(callbacks)
+        onDispose { app.unregisterActivityLifecycleCallbacks(callbacks) }
+    }
     var unlocked by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
