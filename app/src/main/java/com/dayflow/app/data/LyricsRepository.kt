@@ -5,6 +5,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URLEncoder
@@ -58,31 +59,50 @@ object LyricsRepository {
                 }
                 if (durationMs > 0L) append("&duration=").append(durationMs / 1000L)
             }
-            val connection = (URL("https://lrclib.net/api/get?$query").openConnection() as HttpURLConnection)
-            try {
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 8000
-                connection.readTimeout = 8000
-                connection.setRequestProperty("User-Agent", "DAYFLOW Android Music Player")
-                if (connection.responseCode !in 200..299) return@withContext null
-                val body = connection.inputStream.bufferedReader().use { it.readText() }
-                val json = JSONObject(body)
-                val synced = json.optString("syncedLyrics").takeIf { it.isNotBlank() && it != "null" }
-                val plain = json.optString("plainLyrics").takeIf { it.isNotBlank() && it != "null" }
-                when {
-                    synced != null -> parseSynced(synced)?.let { TrackLyrics(it, true) }
-                    plain != null -> TrackLyrics(
-                        plain.lines().map { LyricLine(null, it.trim()) }.filter { it.text.isNotBlank() },
-                        false
-                    )
-                    else -> null
-                }
-            } catch (_: Exception) {
-                null
-            } finally {
-                connection.disconnect()
-            }
+
+            val exact = requestJson("https://lrclib.net/api/get?$query")
+                ?.let { runCatching { parseLyrics(JSONObject(it)) }.getOrNull() }
+            if (exact != null) return@withContext exact
+
+            val search = requestJson("https://lrclib.net/api/search?$query")
+                ?: return@withContext null
+            runCatching {
+                val results = JSONArray(search)
+                (0 until results.length())
+                    .asSequence()
+                    .mapNotNull { index -> parseLyrics(results.optJSONObject(index) ?: return@mapNotNull null) }
+                    .firstOrNull()
+            }.getOrNull()
         }
+
+    private fun requestJson(address: String): String? {
+        val connection = (URL(address).openConnection() as HttpURLConnection)
+        return try {
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 8000
+            connection.readTimeout = 8000
+            connection.setRequestProperty("User-Agent", "DAYFLOW Android Music Player")
+            if (connection.responseCode !in 200..299) null
+            else connection.inputStream.bufferedReader().use { it.readText() }
+        } catch (_: Exception) {
+            null
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun parseLyrics(json: JSONObject): TrackLyrics? {
+        val synced = json.optString("syncedLyrics").takeIf { it.isNotBlank() && it != "null" }
+        val plain = json.optString("plainLyrics").takeIf { it.isNotBlank() && it != "null" }
+        return when {
+            synced != null -> parseSynced(synced)?.let { TrackLyrics(it, true) }
+            plain != null -> TrackLyrics(
+                plain.lines().map { LyricLine(null, it.trim()) }.filter { it.text.isNotBlank() },
+                false
+            )
+            else -> null
+        }
+    }
 
     private fun encode(value: String): String =
         URLEncoder.encode(value, Charsets.UTF_8.name())
