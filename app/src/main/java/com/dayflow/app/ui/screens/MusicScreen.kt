@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -139,121 +141,43 @@ fun MusicScreen() {
     }
 
     ScreenColumn {
-        SectionTitle("Music", "Your offline library")
-        DayflowCard {
-            Box(Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(88.dp))
-            }
-            Text(
-                if (tracks.isEmpty()) "Nothing playing" else tracks.getOrNull(currentIndex)?.name ?: "Audio track",
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleLarge
-            )
-            Text(
-                if (tracks.isEmpty()) "Import audio files from your device" else "Track ${currentIndex + 1} of ${tracks.size}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Slider(
-                value = (if (dragging) dragValue else position.toFloat()).coerceIn(0f, maxOf(duration.toFloat(), 1f)),
-                onValueChange = { dragging = true; dragValue = it },
-                onValueChangeFinished = {
-                    player?.seekTo(dragValue.toLong())
-                    position = dragValue.toLong()
-                    dragging = false
-                },
-                valueRange = 0f..maxOf(duration.toFloat(), 1f),
-                enabled = player != null && duration > 0,
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(clock(if (dragging) dragValue.toLong() else position), style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(clock(duration), style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(enabled = player != null, onClick = { player?.shuffleModeEnabled = !shuffle }) {
-                    Icon(Icons.Default.Shuffle, "Shuffle",
-                        tint = if (shuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Music Player", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            IconButton(onClick = { picker.launch(arrayOf("audio/*")) }) { Icon(Icons.Default.MoreVert, "Import music", tint = MaterialTheme.colorScheme.primary) }
+        }
+        Card(modifier = Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)) {
+            Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.onPrimary.copy(alpha=.12f)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(112.dp))
                 }
-                IconButton(enabled = player != null && tracks.isNotEmpty(), onClick = {
-                    player?.let { active ->
-                        loadPlaylistIfEmpty(active)
-                        active.seekToPreviousMediaItem()
-                    }
-                }) {
-                    Icon(Icons.Default.SkipPrevious, "Previous")
+                Text(if(tracks.isEmpty()) "Nothing playing" else tracks.getOrNull(currentIndex)?.name ?: "Audio track", color=MaterialTheme.colorScheme.onPrimary, style=MaterialTheme.typography.headlineSmall, fontWeight=androidx.compose.ui.text.font.FontWeight.Bold, maxLines=1)
+                Text(if(tracks.isEmpty()) "Your offline music" else "DAYFLOW • Track ${currentIndex+1} of ${tracks.size}", color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.8f))
+                Slider(value=(if(dragging)dragValue else position.toFloat()).coerceIn(0f,maxOf(duration.toFloat(),1f)),onValueChange={dragging=true;dragValue=it},onValueChangeFinished={player?.seekTo(dragValue.toLong());position=dragValue.toLong();dragging=false},valueRange=0f..maxOf(duration.toFloat(),1f),enabled=player!=null&&duration>0,colors=SliderDefaults.colors(thumbColor=MaterialTheme.colorScheme.onPrimary,activeTrackColor=MaterialTheme.colorScheme.onPrimary,inactiveTrackColor=MaterialTheme.colorScheme.onPrimary.copy(alpha=.25f)))
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(clock(if(dragging)dragValue.toLong() else position),color=MaterialTheme.colorScheme.onPrimary,style=MaterialTheme.typography.labelSmall);Text(clock(duration),color=MaterialTheme.colorScheme.onPrimary,style=MaterialTheme.typography.labelSmall)}
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly,verticalAlignment=Alignment.CenterVertically){
+                    IconButton(enabled=player!=null,onClick={player?.shuffleModeEnabled=!shuffle}){Icon(Icons.Default.Shuffle,"Shuffle",tint=MaterialTheme.colorScheme.onPrimary.copy(alpha=if(shuffle)1f else .65f))}
+                    IconButton(enabled=player!=null&&tracks.isNotEmpty(),onClick={player?.let{loadPlaylistIfEmpty(it);it.seekToPreviousMediaItem()}}){Icon(Icons.Default.SkipPrevious,"Previous",tint=MaterialTheme.colorScheme.onPrimary)}
+                    FilledIconButton(enabled=player!=null&&tracks.isNotEmpty(),onClick={player?.let{active->if(active.isPlaying)active.pause() else{loadPlaylistIfEmpty(active);if(active.playbackState==Player.STATE_IDLE)active.prepare();active.play()}}},modifier=Modifier.size(62.dp),colors=IconButtonDefaults.filledIconButtonColors(containerColor=MaterialTheme.colorScheme.onPrimary,contentColor=MaterialTheme.colorScheme.primary)){Icon(if(playing)Icons.Default.Pause else Icons.Default.PlayArrow,if(playing)"Pause" else "Play",modifier=Modifier.size(30.dp))}
+                    IconButton(enabled=player!=null&&tracks.isNotEmpty(),onClick={player?.let{loadPlaylistIfEmpty(it);it.seekToNextMediaItem()}}){Icon(Icons.Default.SkipNext,"Next",tint=MaterialTheme.colorScheme.onPrimary)}
+                    IconButton(enabled=player!=null,onClick={player?.repeatMode=if(repeatAll)Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ALL}){Icon(Icons.Default.Repeat,"Repeat",tint=MaterialTheme.colorScheme.onPrimary.copy(alpha=if(repeatAll)1f else .65f))}
                 }
-                FilledIconButton(enabled = player != null && tracks.isNotEmpty(), onClick = {
-                    player?.let { active ->
-                        if (active.isPlaying) active.pause() else {
-                            loadPlaylistIfEmpty(active)
-                            if (active.playbackState == Player.STATE_IDLE) active.prepare()
-                            active.play()
-                        }
-                    }
-                }) {
-                    Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow, if (playing) "Pause" else "Play")
-                }
-                IconButton(enabled = player != null && tracks.isNotEmpty(), onClick = {
-                    player?.let { active ->
-                        loadPlaylistIfEmpty(active)
-                        active.seekToNextMediaItem()
-                    }
-                }) {
-                    Icon(Icons.Default.SkipNext, "Next")
-                }
-                IconButton(enabled = player != null, onClick = {
-                    player?.repeatMode = if (repeatAll) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ALL
-                }) {
-                    Icon(Icons.Default.Repeat, "Repeat all",
-                        tint = if (repeatAll) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            if (player == null) {
-                Text("Connecting to player…", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelSmall)
+                if(player==null) Text("Connecting to player…",color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.75f),style=MaterialTheme.typography.labelSmall)
             }
         }
-        AccentButton("＋  Import songs") { picker.launch(arrayOf("audio/*")) }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Library", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-            Text("${tracks.size} tracks", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+            Column { Text("Playlist",style=MaterialTheme.typography.titleLarge,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold,color=MaterialTheme.colorScheme.onSurface); Text("${tracks.size} songs",color=MaterialTheme.colorScheme.onSurfaceVariant) }
+            TextButton(onClick={picker.launch(arrayOf("audio/*"))}){Icon(Icons.Default.Add,null);Text("Import")}
         }
-        if (tracks.isEmpty()) {
-            PlaceholderNote("Choose audio files from your phone. Your library stays available offline.")
-        } else {
-            tracks.forEachIndexed { index, track ->
-                DayflowCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(12.dp))
-                        Text(track.name, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
-                        IconButton(enabled = player != null, onClick = {
-                            player?.let { active ->
-                                active.setMediaItems(mediaItems(), index, 0L)
-                                active.prepare()
-                                active.play()
-                                currentIndex = index
-                            }
-                        }) { Icon(Icons.Default.PlayArrow, "Play track") }
-                        IconButton(onClick = {
-                            player?.let { active ->
-                                if (active.mediaItemCount > index) active.removeMediaItem(index)
-                            }
-                            tracks.removeAt(index)
-                            persist()
-                            currentIndex = if (tracks.isEmpty()) 0 else currentIndex.coerceAtMost(tracks.lastIndex)
-                        }) { Icon(Icons.Default.Delete, "Remove track") }
-                    }
+        if(tracks.isEmpty()) {
+            DayflowCard { Icon(Icons.Default.MusicNote,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(34.dp)); Text("Your playlist is empty",color=MaterialTheme.colorScheme.onSurface,fontWeight=androidx.compose.ui.text.font.FontWeight.SemiBold); Text("Import audio files from your phone to listen offline.",color=MaterialTheme.colorScheme.onSurfaceVariant) }
+        } else tracks.forEachIndexed{index,track->
+            DayflowCard {
+                Row(verticalAlignment=Alignment.CenterVertically){
+                    Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),contentAlignment=Alignment.Center){Icon(Icons.Default.MusicNote,null,tint=MaterialTheme.colorScheme.primary)}
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)){Text(track.name,color=MaterialTheme.colorScheme.onSurface,fontWeight=androidx.compose.ui.text.font.FontWeight.SemiBold,maxLines=1);Text(if(index==currentIndex)"Now playing" else "Audio track",color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.labelSmall)}
+                    IconButton(enabled=player!=null,onClick={player?.let{active->active.setMediaItems(mediaItems(),index,0L);active.prepare();active.play();currentIndex=index}}){Icon(if(index==currentIndex&&playing)Icons.Default.Pause else Icons.Default.PlayArrow,"Play track",tint=MaterialTheme.colorScheme.primary)}
+                    IconButton(onClick={player?.let{if(it.mediaItemCount>index)it.removeMediaItem(index)};tracks.removeAt(index);persist();currentIndex=if(tracks.isEmpty())0 else currentIndex.coerceAtMost(tracks.lastIndex)}){Icon(Icons.Default.Delete,"Remove track",tint=MaterialTheme.colorScheme.onSurfaceVariant)}
                 }
             }
         }

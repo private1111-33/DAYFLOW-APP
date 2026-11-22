@@ -3,7 +3,7 @@ name: Build DAYFLOW APK and UI screenshots
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "design/reference-match-v1" ]
 
 permissions:
   contents: write

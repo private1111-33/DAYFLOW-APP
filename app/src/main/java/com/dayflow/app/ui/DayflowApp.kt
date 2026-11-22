@@ -1,28 +1,19 @@
 package com.dayflow.app.ui
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.MenuBook
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import com.dayflow.app.ui.screens.*
-import com.dayflow.app.ui.theme.Background
-import com.dayflow.app.ui.theme.Surface
-import com.dayflow.app.ui.theme.SurfaceElevated
-import com.dayflow.app.ui.theme.TextSecondary
 
 private data class NavItem(val route: String, val label: String, val icon: ImageVector)
 
@@ -30,15 +21,13 @@ private data class NavItem(val route: String, val label: String, val icon: Image
 fun DayflowApp() {
     val navController = rememberNavController()
     val items = listOf(
-        NavItem("home", "Home", Icons.Filled.Home),
-        NavItem("planner", "Tasks", Icons.Filled.TaskAlt),
-        NavItem("alarms", "Alarm", Icons.Filled.Alarm),
-        NavItem("vocabulary", "Words", Icons.Filled.MenuBook),
-        NavItem("music", "Music", Icons.Filled.MusicNote)
+        NavItem("home", "Home", Icons.Rounded.Home),
+        NavItem("vocabulary", "Learn", Icons.Rounded.MenuBook),
+        NavItem("progress", "Stats", Icons.Rounded.BarChart),
+        NavItem("settings", "Settings", Icons.Rounded.Settings)
     )
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
-
     fun openTab(target: String) {
         navController.navigate(target) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -46,11 +35,10 @@ fun DayflowApp() {
             restoreState = true
         }
     }
-
     Scaffold(
-        containerColor = Background,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(containerColor = Surface, contentColor = MaterialTheme.colorScheme.onSurface) {
+            if (route != "splash") NavigationBar(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface) {
                 items.forEach { item ->
                     NavigationBarItem(
                         selected = route == item.route,
@@ -60,36 +48,41 @@ fun DayflowApp() {
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = SurfaceElevated,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary
+                            indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
             }
         }
     ) { padding ->
-        NavHost(navController, startDestination = "home", modifier = Modifier.padding(padding),
-            enterTransition = { fadeIn() + slideInHorizontally(initialOffsetX = { it / 12 }) },
-            exitTransition = { fadeOut() + slideOutHorizontally(targetOffsetX = { -it / 16 }) },
-            popEnterTransition = { fadeIn() + slideInHorizontally(initialOffsetX = { -it / 12 }) },
-            popExitTransition = { fadeOut() + slideOutHorizontally(targetOffsetX = { it / 16 }) }) {
+        NavHost(navController, startDestination = "splash", modifier = Modifier.padding(padding)) {
+            composable("splash") {
+                LaunchedEffect(Unit) {
+                    delay(1700)
+                    navController.navigate("home") { popUpTo("splash") { inclusive = true } }
+                }
+                SplashScreen()
+            }
             composable("home") {
                 HomeScreen(
-                    onOpenProgress = { navController.navigate("progress") { launchSingleTop = true } },
-                    onOpenSettings = { navController.navigate("settings") { launchSingleTop = true } },
-                    onOpenPlanner = { openTab("planner") },
-                    onOpenAlarms = { openTab("alarms") },
+                    onOpenProgress = { openTab("progress") },
+                    onOpenSettings = { openTab("settings") },
+                    onOpenPlanner = { navController.navigate("planner") },
+                    onOpenAlarms = { navController.navigate("alarms") },
                     onOpenVocabulary = { openTab("vocabulary") },
-                    onOpenMusic = { openTab("music") }
+                    onOpenQuiz = { navController.navigate("quiz") },
+                    onOpenMusic = { navController.navigate("music") }
                 )
             }
             composable("planner") { PlannerScreen() }
             composable("alarms") { AlarmsScreen() }
             composable("vocabulary") { VocabularyScreen() }
+            composable("quiz") { QuizScreen(onBack = { openTab("home") }) }
             composable("music") { MusicScreen() }
-            composable("progress") { ProgressScreen(onBack = { navController.popBackStack() }) }
-            composable("settings") { SettingsScreen(onBack = { navController.popBackStack() }) }
+            composable("progress") { ProgressScreen(onBack = { openTab("home") }) }
+            composable("settings") { SettingsScreen(onBack = { openTab("home") }, onOpenMusic = { navController.navigate("music") }) }
         }
     }
 }

@@ -2,16 +2,9 @@ package com.dayflow.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,8 +18,8 @@ import com.dayflow.app.data.AlarmScheduler
 import com.dayflow.app.data.AlarmStore
 import com.dayflow.app.data.LocalStore
 import com.dayflow.app.ui.theme.*
-import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
@@ -37,132 +30,122 @@ fun HomeScreen(
     onOpenPlanner: () -> Unit,
     onOpenAlarms: () -> Unit,
     onOpenVocabulary: () -> Unit,
+    onOpenQuiz: () -> Unit,
     onOpenMusic: () -> Unit
 ) {
     val context = LocalContext.current
-    val today = LocalDate.now().toEpochDay()
-    val tasks = remember { LocalStore.tasks(context).filter { it.date == today } }
     val words = remember { LocalStore.words(context) }
-    val alarms = remember { AlarmStore.all(context).filter { it.enabled } }
-    val completed = tasks.count { it.done }
-    val pending = tasks.filter { !it.done }.sortedBy { it.time }
+    val tasks = remember { LocalStore.tasks(context).filter { it.date == LocalDate.now().toEpochDay() } }
     val learned = words.count { it.learned }
-    val percent = if (tasks.isEmpty()) 0 else completed * 100 / tasks.size
+    val accuracy = if (words.isEmpty()) 0 else learned * 100 / words.size
+    val alarms = remember { AlarmStore.all(context).filter { it.enabled } }
     val nextAlarm = alarms.minByOrNull { AlarmScheduler.minutesUntil(it) }
     val greeting = when (java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) {
-        in 5..11 -> "Good Morning,"
-        in 12..17 -> "Good Afternoon,"
-        else -> "Good Evening,"
+        in 5..11 -> "Good Morning!"
+        in 12..17 -> "Good Afternoon!"
+        else -> "Good Evening!"
     }
 
     ScreenColumn {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(SurfaceElevated),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.MenuBook, null, tint = Burgundy, modifier = Modifier.size(28.dp))
-            }
-            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("DAYFLOW", color = TextPrimary, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("Your Personal Daily System", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                Text(greeting, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("Keep going, you're doing great!", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, "Settings", tint = TextPrimary) }
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(greeting, color = TextPrimary, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("Let's make today productive.", color = TextSecondary)
-            Text(SimpleDateFormat("EEEE, MMMM d", Locale.ENGLISH).format(Date()), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        }
-
-        DayflowCard(onClick = onOpenProgress) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        progress = { percent / 100f },
-                        modifier = Modifier.fillMaxSize(),
-                        strokeWidth = 9.dp,
-                        color = Burgundy,
-                        trackColor = SurfaceElevated
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("$percent%", color = TextPrimary, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                        Text("Today", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-                        Text("Complete", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                Spacer(Modifier.width(18.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MetricLine(Success, completed.toString(), "Completed")
-                    MetricLine(BurgundyLight, tasks.size.toString(), "Total tasks")
-                    MetricLine(Warning, (tasks.size - completed).toString(), "Remaining")
-                }
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Rounded.Settings, "Settings", tint = MaterialTheme.colorScheme.primary)
             }
         }
 
-        Text("Quick Access", color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickAction("Tasks", Icons.Default.TaskAlt, onOpenPlanner, Modifier.weight(1f))
-            QuickAction("Music", Icons.Default.MusicNote, onOpenMusic, Modifier.weight(1f))
-            QuickAction("Alarm", Icons.Default.Alarm, onOpenAlarms, Modifier.weight(1f))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 19.dp, horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Stat(Icons.Rounded.MenuBook, words.size.toString(), "Words")
+                Stat(Icons.Rounded.LocalFireDepartment, tasks.count { it.done }.toString(), "Tasks Done")
+                Stat(Icons.Rounded.EmojiEvents, "$accuracy%", "Accuracy")
+            }
         }
 
-        DayflowCard(onClick = onOpenAlarms) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Alarm, null, tint = Burgundy, modifier = Modifier.size(30.dp))
-                Spacer(Modifier.width(14.dp))
+        Button(
+            onClick = onOpenVocabulary,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Icon(Icons.Rounded.PlayArrow, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Continue Learning", fontWeight = FontWeight.SemiBold)
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Quick Access", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onOpenProgress) { Text("See All  ›", color = MaterialTheme.colorScheme.primary) }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                QuickAction("Word List", Icons.Rounded.MenuBook, onOpenVocabulary, Modifier.weight(1f))
+                QuickAction("Quizzes", Icons.Rounded.SportsEsports, onOpenQuiz, Modifier.weight(1f))
+                QuickAction("Progress", Icons.Rounded.BarChart, onOpenProgress, Modifier.weight(1f))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                QuickAction("Tasks", Icons.Rounded.AssignmentTurnedIn, onOpenPlanner, Modifier.weight(1f))
+                QuickAction("Music", Icons.Rounded.MusicNote, onOpenMusic, Modifier.weight(1f))
+                QuickAction("Alarm", Icons.Rounded.Notifications, onOpenAlarms, Modifier.weight(1f))
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🏆", style = MaterialTheme.typography.displaySmall)
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("Next Alarm", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-                    Text(
-                        nextAlarm?.let { String.format(Locale.ENGLISH, "%d:%02d %s", if (it.hour % 12 == 0) 12 else it.hour % 12, it.minute, if (it.hour < 12) "AM" else "PM") } ?: "No alarm set",
-                        color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold
-                    )
-                    Text(nextAlarm?.label?.ifBlank { "Daily reminder" } ?: "Create a reminder in Alarms", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text("You're making progress!", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                    Text("$learned words learned", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
-                Icon(Icons.Default.ChevronRight, null, tint = TextSecondary)
-            }
-        }
-
-        DayflowCard(onClick = onOpenVocabulary) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.MenuBook, null, tint = Burgundy, modifier = Modifier.size(30.dp))
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Vocabulary", color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("${words.size} words · $learned learned", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                    LinearProgressIndicator(
-                        progress = { if (words.isEmpty()) 0f else learned.toFloat() / words.size },
-                        modifier = Modifier.fillMaxWidth(), color = Burgundy, trackColor = SurfaceElevated
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
-                Text(if (words.isEmpty()) "0%" else "${learned * 100 / words.size}%", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.primary)
             }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Upcoming Tasks", color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            TextButton(onClick = onOpenPlanner) { Text("See All  →", color = Burgundy) }
+            Text("Daily Reminder", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onOpenAlarms) { Text("Manage", color = MaterialTheme.colorScheme.primary) }
         }
-        if (pending.isEmpty()) {
-            DayflowCard { Text("No pending tasks. Your schedule is clear.", color = TextSecondary) }
-        } else {
-            pending.take(3).forEach { task ->
-                DayflowCard(onClick = onOpenPlanner) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.RadioButtonUnchecked, null, tint = Burgundy)
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(task.title, color = TextPrimary, fontWeight = FontWeight.Medium)
-                            Text(task.time.ifBlank { "Today" }, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-                        }
-                        Text("Open", color = Burgundy, style = MaterialTheme.typography.labelSmall)
-                    }
+        DayflowCard(onClick = onOpenAlarms) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Alarm, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        nextAlarm?.let { String.format(Locale.ENGLISH, "%d:%02d %s", if (it.hour % 12 == 0) 12 else it.hour % 12, it.minute, if (it.hour < 12) "AM" else "PM") } ?: "No alarm set",
+                        color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold
+                    )
+                    Text(nextAlarm?.label?.ifBlank { "Daily reminder" } ?: "Add an alarm to stay on track", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
+                Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        Text(SimpleDateFormat("EEEE, MMMM d", Locale.ENGLISH).format(Date()), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun Stat(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Icon(icon, null, tint = Color.White, modifier = Modifier.size(27.dp))
+        Text(value, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(label, color = Color.White.copy(alpha = .9f), style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -171,27 +154,18 @@ private fun QuickAction(title: String, icon: androidx.compose.ui.graphics.vector
     Card(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface)
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 6.dp),
+            Modifier.fillMaxWidth().padding(vertical = 13.dp, horizontal = 3.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
-            Box(Modifier.size(42.dp).clip(RoundedCornerShape(13.dp)).background(SurfaceElevated), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = Burgundy, modifier = Modifier.size(23.dp))
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(23.dp))
             }
-            Text(title, color = TextPrimary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
-    }
-}
-
-@Composable
-private fun MetricLine(color: Color, value: String, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        Box(Modifier.size(9.dp).clip(CircleShape).background(color))
-        Text(value, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-        Text(label, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
     }
 }

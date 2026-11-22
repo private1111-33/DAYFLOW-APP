@@ -1,19 +1,20 @@
 package com.dayflow.app.ui.screens
+import androidx.compose.material.icons.rounded.Search
 
 import android.speech.tts.TextToSpeech
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FileUpload
 import com.dayflow.app.data.ExcelVocabularyImporter
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,6 +49,7 @@ fun VocabularyScreen() {
     var example by remember { mutableStateOf("") }
     var reveal by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<WordEntry?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
     var index by remember { mutableIntStateOf(0) }
     val learned = words.count { it.learned }
     val due = words.filter { !it.learned }
@@ -74,19 +76,19 @@ fun VocabularyScreen() {
     ScreenColumn {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Vocabulary", color = TextPrimary, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-                Text("Your daily English practice", color = TextSecondary)
+                Text("Vocabulary", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+                Text("Your daily English practice", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { importLauncher.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream")) }) { Icon(Icons.Default.FileUpload, "Import Excel", tint = BurgundyLight) }
-                IconButton(onClick = { showAdd = true }) { Icon(Icons.Default.Add, "Add word", tint = BurgundyLight) }
+                IconButton(onClick = { importLauncher.launch(arrayOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream")) }) { Icon(Icons.Rounded.FileUpload, "Import Excel", tint = MaterialTheme.colorScheme.secondary) }
+                IconButton(onClick = { showAdd = true }) { Icon(Icons.Rounded.Add, "Add word", tint = MaterialTheme.colorScheme.secondary) }
             }
         }
         DayflowCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("TODAY'S PROGRESS", color = TextSecondary, style = MaterialTheme.typography.labelMedium)
-                    Text("$learned / ${words.size}", color = TextPrimary, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("TODAY'S PROGRESS", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                    Text("$learned / ${words.size}", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
                 Text("★", color = Warning, style = MaterialTheme.typography.headlineMedium)
             }
@@ -94,50 +96,50 @@ fun VocabularyScreen() {
                 LinearProgressIndicator(
                     progress = { if (words.isEmpty()) 0f else learned.toFloat() / words.size },
                     modifier = Modifier.weight(1f).height(8.dp),
-                    color = BurgundyLight, trackColor = SurfaceElevated
+                    color = MaterialTheme.colorScheme.secondary, trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Spacer(Modifier.width(12.dp))
-                Text(if (words.isEmpty()) "0%" else "${learned * 100 / words.size}%", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                Text(if (words.isEmpty()) "0%" else "${learned * 100 / words.size}%", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
             }
         }
 
         if (current == null) {
             DayflowCard {
                 Text(if (words.isEmpty()) "Your vocabulary starts here" else "You're done for today",
-                    color = TextPrimary, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth())
                 Text(if (words.isEmpty()) "Add your first English word and its meaning." else "All saved words are marked as learned. Add more words to keep going.",
-                    color = TextSecondary, textAlign = TextAlign.Center)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                 AccentButton("＋  Add a word") { showAdd = true }
             }
         } else {
             DayflowCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Text("WORD ${safeIndex + 1} OF ${due.size}", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    Text("WORD ${safeIndex + 1} OF ${due.size}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    Text(current.word, color = TextPrimary, style = MaterialTheme.typography.headlineLarge,
+                    Text(current.word, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
                     IconButton(onClick = { tts?.speak(current.word, TextToSpeech.QUEUE_FLUSH, null, "dayflow_word") }) {
-                        Icon(Icons.Default.VolumeUp, "Pronounce", tint = BurgundyLight)
+                        Icon(Icons.Rounded.VolumeUp, "Pronounce", tint = MaterialTheme.colorScheme.secondary)
                     }
                 }
                 if (reveal) {
-                    Text(current.meaning, color = BurgundyLight, style = MaterialTheme.typography.titleLarge,
+                    Text(current.meaning, color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     if (current.example.isNotBlank()) {
-                        Text(current.example, color = TextSecondary, textAlign = TextAlign.Center,
+                        Text(current.example, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth())
                     }
                 } else {
-                    Text("Think of the meaning, then reveal it", color = TextSecondary,
+                    Text("Think of the meaning, then reveal it", color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
                 Spacer(Modifier.height(18.dp))
                 OutlinedButton(onClick = { reveal = !reveal }, modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)) {
-                    Text(if (reveal) "Hide meaning" else "Reveal meaning", color = TextPrimary)
+                    Text(if (reveal) "Hide meaning" else "Reveal meaning", color = MaterialTheme.colorScheme.onSurface)
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -150,10 +152,10 @@ fun VocabularyScreen() {
                         save()
                     },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Burgundy),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Check, null)
+                    Icon(Icons.Rounded.Check, null)
                     Spacer(Modifier.width(6.dp))
                     Text("I Know")
                 }
@@ -162,31 +164,40 @@ fun VocabularyScreen() {
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Favorite, null, tint = TextSecondary)
+                    Icon(Icons.Rounded.Favorite, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.width(6.dp))
-                    Text("Hard", color = TextPrimary)
+                    Text("Hard", color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("My words", color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            Text("${words.size} saved", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            Text("Word List", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text("${words.size} saved", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
         }
-        words.forEach { entry ->
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Search vocabulary") },
+            leadingIcon = { Icon(Icons.Rounded.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            shape = RoundedCornerShape(18.dp)
+        )
+        words.filter { it.word.contains(searchQuery, true) || it.meaning.contains(searchQuery, true) }.forEach { entry ->
             DayflowCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(entry.word, color = TextPrimary, fontWeight = FontWeight.Medium)
-                        Text(entry.meaning, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                        Text(entry.word, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+                        Text(entry.meaning, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                     }
-                    Text(if (entry.learned) "Learned" else "Review", color = if (entry.learned) Success else BurgundyLight,
+                    Text(if (entry.learned) "Learned" else "Review", color = if (entry.learned) Success else MaterialTheme.colorScheme.secondary,
                         style = MaterialTheme.typography.labelSmall)
                     IconButton(onClick = { editingWord = entry; word = entry.word; meaning = entry.meaning; example = entry.example; showAdd = true }) {
-                        Icon(Icons.Default.Edit, "Edit word", tint = BurgundyLight)
+                        Icon(Icons.Rounded.Edit, "Edit word", tint = MaterialTheme.colorScheme.secondary)
                     }
                     IconButton(onClick = { pendingDelete = entry }) {
-                        Icon(Icons.Default.Delete, "Delete word", tint = TextSecondary)
+                        Icon(Icons.Rounded.Delete, "Delete word", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -214,7 +225,7 @@ fun VocabularyScreen() {
                         else { val i = words.indexOfFirst { it.id == old.id }; if (i >= 0) words[i] = old.copy(word = word.trim(), meaning = meaning.trim(), example = example.trim()) }
                         save(); word = ""; meaning = ""; example = ""; editingWord = null; index = 0; showAdd = false
                     }
-                }) { Text("Save", color = BurgundyLight) }
+                }) { Text("Save", color = MaterialTheme.colorScheme.secondary) }
             },
             dismissButton = { TextButton(onClick = { showAdd = false; editingWord = null; word = ""; meaning = ""; example = "" }) { Text("Cancel") } }
         )

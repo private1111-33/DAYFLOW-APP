@@ -1,4 +1,7 @@
 package com.dayflow.app.ui.screens
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 
 import android.content.Intent
 import android.net.Uri
@@ -21,7 +24,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onOpenMusic: () -> Unit = {}) {
     val context = LocalContext.current
     var pendingBackup by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
@@ -115,10 +118,21 @@ fun SettingsScreen(onBack: () -> Unit) {
 
     ScreenColumn {
         TextButton(onClick = onBack) { Text("← Back") }
-        SectionTitle("Settings", "Make DAYFLOW work your way")
+        SectionTitle("Settings", "Learn. Improve. Repeat.")
         DayflowCard {
-            Text("Appearance", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
-            Text("Dark theme · Black, charcoal and burgundy", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Dayflow User", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
+            Text("Learn. Improve. Repeat.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DayflowCard {
+            Text("Learning Preferences", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+            Text("Your vocabulary and daily learning activity are stored on this device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DayflowCard(onClick = onOpenMusic) {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Music Settings", modifier = androidx.compose.ui.Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+                Text("›", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleLarge)
+            }
+            Text("Manage your music library and playback.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         DayflowCard {
             Text("Reminders & alarms", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
