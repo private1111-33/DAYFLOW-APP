@@ -23,20 +23,36 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
+      - name: Prepare release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/dayflow-release.jks"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/dayflow-release.jks" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
       - name: Read app version
         id: version
         run: |
           VERSION=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
           echo "name=$VERSION" >> "$GITHUB_OUTPUT"
-      - name: Build debug APK
-        run: gradle assembleDebug
+      - name: Build signed release APK
+        run: gradle assembleRelease
       - name: Prepare release APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk DAYFLOW.apk
+        run: cp app/build/outputs/apk/release/app-release.apk DAYFLOW.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DAYFLOW-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: DAYFLOW-release-apk
+          path: DAYFLOW.apk
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -62,7 +78,7 @@ jobs:
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
-          name: DAYFLOW-debug-apk
+          name: DAYFLOW-release-apk
           path: apk
       - name: Run app on Android emulator and capture screens
         uses: reactivecircus/android-emulator-runner@v2
@@ -73,7 +89,7 @@ jobs:
           profile: pixel_6
           script: |
             mkdir -p screenshots
-            adb install -g apk/app-debug.apk
+            adb install -g apk/DAYFLOW.apk
             adb shell monkey -p com.dayflow.app -c android.intent.category.LAUNCHER 1
             sleep 8
             adb shell screencap -p /sdcard/home.png
