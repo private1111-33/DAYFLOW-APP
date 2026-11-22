@@ -48,6 +48,7 @@ fun VocabularyScreen() {
     var example by remember { mutableStateOf("") }
     var reveal by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<WordEntry?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
     var index by remember { mutableIntStateOf(0) }
     val learned = words.count { it.learned }
     val due = words.filter { !it.learned }
@@ -170,10 +171,19 @@ fun VocabularyScreen() {
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("My words", color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text("Word List", color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Text("${words.size} saved", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         }
-        words.forEach { entry ->
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Search vocabulary") },
+            leadingIcon = { Icon(Icons.Default.Search, null, tint = TextSecondary) },
+            shape = RoundedCornerShape(18.dp)
+        )
+        words.filter { it.word.contains(searchQuery, true) || it.meaning.contains(searchQuery, true) }.forEach { entry ->
             DayflowCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
