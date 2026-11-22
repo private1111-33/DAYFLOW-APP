@@ -28,20 +28,25 @@ object TrackMetadataReader {
     suspend fun read(context: Context, uri: Uri, fallbackName: String): TrackMetadata =
         withContext(Dispatchers.IO) {
             val retriever = MediaMetadataRetriever()
+            val fallback = fallbackName.substringBeforeLast('.', fallbackName).trim()
+            val fallbackParts = fallback.split(Regex("\\s[-–—_]\\s"), limit = 2)
+            val fallbackArtist = fallbackParts.firstOrNull()?.takeIf { fallbackParts.size == 2 && it.isNotBlank() }
+            val fallbackTitle = fallbackParts.getOrNull(1)?.takeIf { it.isNotBlank() } ?: fallback
             try {
                 retriever.setDataSource(context, uri)
                 val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                    ?.takeIf { it.isNotBlank() } ?: fallbackName.substringBeforeLast('.')
+                    ?.takeIf { it.isNotBlank() } ?: fallbackTitle
                 val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                     ?.takeIf { it.isNotBlank() }
                     ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
                         ?.takeIf { it.isNotBlank() }
+                    ?: fallbackArtist
                     ?: "Unknown artist"
                 val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                     ?.toLongOrNull() ?: 0L
                 TrackMetadata(title, artist, duration)
             } catch (_: Exception) {
-                TrackMetadata(fallbackName.substringBeforeLast('.'), "Unknown artist", 0L)
+                TrackMetadata(fallbackTitle, fallbackArtist ?: "Unknown artist", 0L)
             } finally {
                 runCatching { retriever.release() }
             }
