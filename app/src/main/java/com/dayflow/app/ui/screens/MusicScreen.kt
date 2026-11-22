@@ -6,6 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -63,6 +66,13 @@ fun MusicScreen() {
     var spotifyInfo by remember { mutableStateOf<String?>(null) }
     var spotifyError by remember { mutableStateOf<String?>(null) }
     var lookingUpSpotify by remember { mutableStateOf(false) }
+    var lyricsQuery by remember { mutableStateOf("") }
+    var lyricsLines by remember { mutableStateOf<List<Pair<Long, String>>>(emptyList()) }
+    var plainLyrics by remember { mutableStateOf<String?>(null) }
+    var lyricsError by remember { mutableStateOf<String?>(null) }
+    var loadingLyrics by remember { mutableStateOf(false) }
+    var lyricsTitle by remember { mutableStateOf<String?>(null) }
+    val lyricsListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val vinylRotation = rememberInfiniteTransition(label = "vinyl").animateFloat(0f, 360f, infiniteRepeatable(tween(8000, easing = LinearEasing)), label = "vinylRotation")
 
@@ -70,6 +80,8 @@ fun MusicScreen() {
         val total = (ms / 1000).coerceAtLeast(0)
         return "%d:%02d".format(total / 60, total % 60)
     }
+
+    LaunchedEffect(currentIndex, tracks.size) { if (tracks.isNotEmpty()) lyricsQuery = tracks.getOrNull(currentIndex)?.name.orEmpty() }
 
     LaunchedEffect(player) {
         while (true) {
@@ -207,6 +219,101 @@ fun MusicScreen() {
                     IconButton(enabled=player!=null,onClick={player?.repeatMode=if(repeatAll)Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ALL}){Icon(Icons.Default.Repeat,"Repeat",tint=MaterialTheme.colorScheme.onPrimary.copy(alpha=if(repeatAll)1f else .65f))}
                 }
                 if(player==null) Text("Connecting to player…",color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.75f),style=MaterialTheme.typography.labelSmall)
+            }
+        }
+        DayflowCard {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Lyrics", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text("LRCLIB", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            }
+            OutlinedTextField(
+                value = lyricsQuery,
+                onValueChange = { lyricsQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Song title or artist") }
+            )
+            Button(
+                enabled = lyricsQuery.isNotBlank() && !loadingLyrics,
+                onClick = {
+                    scope.launch {
+                        loadingLyrics = true
+                        lyricsError = null
+                        lyricsLines = emptyList()
+                        plainLyrics = null
+                        lyricsTitle = null
+                        try {
+                            val matches = withContext(Dispatchers.IO) {
+                                val endpoint = "https://lrclib.net/api/search?q=" + Uri.encode(lyricsQuery.trim())
+                                val connection = URL(endpoint).openConnection()
+                                connection.connectTimeout = 10000
+                                connection.readTimeout = 10000
+                                connection.setRequestProperty("User-Agent", "DAYFLOW/0.4.0")
+                                val body = connection.getInputStream().bufferedReader().use { it.readText() }
+                                org.json.JSONArray(body)
+                            }
+                            if (matches.length() == 0) {
+                                lyricsError = "No lyrics found. Try adding the artist name."
+                            } else {
+                                val match = (0 until matches.length()).asSequence()
+                                    .map { matches.getJSONObject(it) }
+                                    .firstOrNull { it.optString("syncedLyrics").isNotBlank() || it.optString("plainLyrics").isNotBlank() }
+                                if (match == null) {
+                                    lyricsError = "Lyrics are not available for this track."
+                                } else {
+                                    lyricsTitle = listOf(match.optString("trackName"), match.optString("artistName")).filter { it.isNotBlank() }.joinToString(" • ")
+                                    val synced = match.optString("syncedLyrics")
+                                    if (synced.isNotBlank()) {
+                                        val parsed = Regex("""\\[(\\d{2}):(\\d{2}\\.\\d{2,3})\\](.*)""")
+                                        lyricsLines = synced.lines().flatMap { line ->
+                                            parsed.findAll(line).map { found ->
+                                                val min = found.groupValues[1].toLong()
+                                                val sec = found.groupValues[2].toDouble()
+                                                (min * 60000L + (sec * 1000).toLong()) to found.groupValues[3].trim()
+                                            }.toList()
+                                        }.sortedBy { it.first }.filter { it.second.isNotBlank() }
+                                    } else {
+                                        plainLyrics = match.optString("plainLyrics")
+                                    }
+                                }
+                            }
+                        } catch (_: Exception) {
+                            lyricsError = "Couldn't load lyrics. Check your internet connection and try again."
+                        } finally {
+                            loadingLyrics = false
+                        }
+                    }
+                }
+            ) { Text(if (loadingLyrics) "Searching…" else "Find lyrics") }
+            lyricsTitle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall) }
+            lyricsError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            if (lyricsLines.isNotEmpty()) {
+                val activeLine = lyricsLines.indexOfLast { it.first <= position }.coerceAtLeast(0)
+                LaunchedEffect(activeLine, lyricsLines) {
+                    if (activeLine < lyricsLines.size) lyricsListState.animateScrollToItem(activeLine)
+                }
+                LazyColumn(
+                    state = lyricsListState,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                    contentPadding = PaddingValues(vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    itemsIndexed(lyricsLines) { index, line ->
+                        Text(
+                            line.second,
+                            modifier = Modifier.fillMaxWidth(),
+                            color = if (index == activeLine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = if (index == activeLine) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (index == activeLine) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+                        )
+                    }
+                }
+                Text("Synced lyrics • follows playback", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            } else if (!plainLyrics.isNullOrBlank()) {
+                Text(plainLyrics!!, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
+                Text("Plain lyrics • not synchronized", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+            } else if (lyricsError == null) {
+                Text("Search for the current song to display its lyrics here.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
