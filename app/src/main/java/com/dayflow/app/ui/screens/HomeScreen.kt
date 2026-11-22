@@ -30,6 +30,7 @@ fun HomeScreen(
     onOpenPlanner: () -> Unit,
     onOpenAlarms: () -> Unit,
     onOpenVocabulary: () -> Unit,
+    onOpenQuiz: () -> Unit,
     onOpenMusic: () -> Unit
 ) {
     val context = LocalContext.current
@@ -91,7 +92,7 @@ fun HomeScreen(
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 QuickAction("Word List", Icons.Default.MenuBook, onOpenVocabulary, Modifier.weight(1f))
-                QuickAction("Quizzes", Icons.Default.SportsEsports, onOpenVocabulary, Modifier.weight(1f))
+                QuickAction("Quizzes", Icons.Default.SportsEsports, onOpenQuiz, Modifier.weight(1f))
                 QuickAction("Progress", Icons.Default.BarChart, onOpenProgress, Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
