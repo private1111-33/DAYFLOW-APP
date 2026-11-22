@@ -1,6 +1,17 @@
 package com.dayflow.app.ui.screens
 
+import android.app.DownloadManager
 import android.content.ComponentName
+import android.content.Context
+import android.os.Environment
+import android.widget.Toast
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import org.json.JSONObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,6 +62,11 @@ fun MusicScreen() {
     var dragValue by remember { mutableFloatStateOf(0f) }
     var shuffle by remember { mutableStateOf(false) }
     var repeatAll by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var onlineResults by remember { mutableStateOf<List<ArchiveTrack>>(emptyList()) }
+    var searching by remember { mutableStateOf(false) }
+    var searchMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     fun clock(ms: Long): String {
         val total = (ms / 1000).coerceAtLeast(0)
@@ -145,6 +161,36 @@ fun MusicScreen() {
             Text("Music Player", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             IconButton(onClick = { picker.launch(arrayOf("audio/*")) }) { Icon(Icons.Default.MoreVert, "Import music", tint = MaterialTheme.colorScheme.primary) }
         }
+        OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search downloadable music") }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, trailingIcon = {
+            IconButton(enabled = searchQuery.isNotBlank() && !searching, onClick = {
+                scope.launch {
+                    searching = true
+                    searchMessage = null
+                    val outcome = runCatching { searchArchiveAudio(searchQuery.trim()) }
+                    onlineResults = outcome.getOrDefault(emptyList())
+                    searchMessage = when { outcome.isFailure -> "Search is temporarily unavailable."; onlineResults.isEmpty() -> "No tracks with an explicit download-friendly license were found."; else -> null }
+                    searching = false
+                }
+            }) { Icon(Icons.Default.Search, contentDescription = "Search") }
+        })
+        if (searching) LinearProgressIndicator(Modifier.fillMaxWidth())
+        searchMessage?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall) }
+        onlineResults.forEach { result ->
+            DayflowCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(result.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, maxLines = 2)
+                        Text("${result.creator} · ${result.license}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                    }
+                    TextButton(onClick = {
+                        val request = DownloadManager.Request(Uri.parse(result.downloadUrl)).setTitle(result.title).setDescription("Downloading full audio from Internet Archive").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setAllowedOverMetered(true).setAllowedOverRoaming(false).setDestinationInExternalPublicDir(Environment.DIRECTORY_MUSIC, result.fileName)
+                        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                        manager.enqueue(request)
+                        Toast.makeText(context, "Download started", Toast.LENGTH_SHORT).show()
+                    }) { Icon(Icons.Default.Download, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("Download") }
+                }
+            }
+        }
         Card(modifier = Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)) {
             Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.onPrimary.copy(alpha=.12f)), contentAlignment = Alignment.Center) {
@@ -182,4 +228,42 @@ fun MusicScreen() {
             }
         }
     }
+}
+
+private data class ArchiveTrack(val title: String, val creator: String, val license: String, val downloadUrl: String, val fileName: String)
+
+/** Search Internet Archive and allow full downloads only for explicitly licensed CC/public-domain audio. */
+private suspend fun searchArchiveAudio(query: String): List<ArchiveTrack> = withContext(Dispatchers.IO) {
+    val encoded = URLEncoder.encode("mediatype:audio AND title:$query", "UTF-8")
+    val searchUrl = URL("https://archive.org/advancedsearch.php?q=$encoded&fl[]=identifier&fl[]=title&fl[]=creator&rows=12&page=1&output=json")
+    val searchConnection = (searchUrl.openConnection() as HttpURLConnection).apply { connectTimeout = 12000; readTimeout = 12000 }
+    val docs = try { JSONObject(searchConnection.inputStream.bufferedReader().use { it.readText() }).getJSONObject("response").getJSONArray("docs") } finally { searchConnection.disconnect() }
+    val accepted = mutableListOf<ArchiveTrack>()
+    for (i in 0 until minOf(docs.length(), 12)) {
+        val doc = docs.getJSONObject(i)
+        val identifier = doc.optString("identifier")
+        if (identifier.isBlank()) continue
+        val connection = (URL("https://archive.org/metadata/$identifier").openConnection() as HttpURLConnection).apply { connectTimeout = 10000; readTimeout = 10000 }
+        val metadata = try { JSONObject(connection.inputStream.bufferedReader().use { it.readText() }) } catch (_: Exception) { continue } finally { connection.disconnect() }
+        val itemMeta = metadata.optJSONObject("metadata") ?: continue
+        val licenseUrl = itemMeta.optString("licenseurl")
+        val licenseText = when {
+            licenseUrl.contains("creativecommons.org/publicdomain", ignoreCase = true) -> "Public domain"
+            licenseUrl.contains("creativecommons.org/licenses/by-sa", ignoreCase = true) -> "CC BY-SA"
+            licenseUrl.contains("creativecommons.org/licenses/by/", ignoreCase = true) -> "CC BY"
+            licenseUrl.contains("creativecommons.org/publicdomain/zero", ignoreCase = true) -> "CC0"
+            else -> continue
+        }
+        val files = metadata.optJSONArray("files") ?: continue
+        var mp3: String? = null
+        for (j in 0 until files.length()) {
+            val file = files.optJSONObject(j) ?: continue
+            val name = file.optString("name")
+            if (name.endsWith(".mp3", ignoreCase = true) && file.optString("format").contains("mp3", ignoreCase = true)) { mp3 = name; break }
+        }
+        val fileName = mp3 ?: continue
+        val safeName = fileName.substringAfterLast("/").replace(Regex("[^A-Za-z0-9._-]"), "_")
+        accepted.add(ArchiveTrack(doc.optString("title", identifier), doc.optString("creator", "Unknown artist"), licenseText, "https://archive.org/download/$identifier/${Uri.encode(fileName, "/")}", safeName))
+    }
+    accepted
 }
