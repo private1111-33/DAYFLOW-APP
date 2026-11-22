@@ -6,6 +6,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 
 private val DayflowColors = lightColorScheme(
@@ -33,6 +34,14 @@ private val DayflowColors = lightColorScheme(
 
 private val DayflowTypography = Typography().let { base ->
     base.copy(
+        defaultFontFamily = FontFamily.SansSerif,
+        displayLarge = base.displayLarge.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, letterSpacing = (-0.6).sp),
+        displayMedium = base.displayMedium.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp),
+        headlineLarge = base.headlineLarge.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp),
+        titleSmall = base.titleSmall.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Medium),
+        bodyLarge = base.bodyLarge.copy(fontFamily = FontFamily.SansSerif, letterSpacing = (-0.1).sp),
+        bodyMedium = base.bodyMedium.copy(fontFamily = FontFamily.SansSerif, letterSpacing = (-0.1).sp),
+        bodySmall = base.bodySmall.copy(fontFamily = FontFamily.SansSerif),
         headlineMedium = base.headlineMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.2).sp),
         headlineSmall = base.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
         titleLarge = base.titleLarge.copy(fontWeight = FontWeight.SemiBold),
