@@ -2,19 +2,18 @@ package com.dayflow.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-private val DayflowColors = lightColorScheme(
-    primary = Burgundy,
-    onPrimary = Color.White,
-    primaryContainer = SurfaceElevated,
-    onPrimaryContainer = Burgundy,
-    secondary = BurgundyLight,
-    onSecondary = Color.White,
+private val DayflowColors = darkColorScheme(
+    primary = BurgundyLight,
+    onPrimary = TextPrimary,
+    primaryContainer = Burgundy,
+    onPrimaryContainer = TextPrimary,
+    secondary = Burgundy,
+    onSecondary = TextPrimary,
     tertiary = Warning,
     background = Background,
     onBackground = TextPrimary,
@@ -22,8 +21,8 @@ private val DayflowColors = lightColorScheme(
     onSurface = TextPrimary,
     surfaceVariant = SurfaceElevated,
     onSurfaceVariant = TextSecondary,
-    surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Background,
+    surfaceContainerLowest = Background,
+    surfaceContainerLow = Surface,
     surfaceContainer = Surface,
     surfaceContainerHigh = SurfaceElevated,
     surfaceContainerHighest = SurfaceElevated,
@@ -37,8 +36,8 @@ private val DayflowTypography = Typography().let { base ->
         headlineSmall = base.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
         titleLarge = base.titleLarge.copy(fontWeight = FontWeight.SemiBold),
         titleMedium = base.titleMedium.copy(fontWeight = FontWeight.Medium),
-        labelSmall = base.labelSmall.copy(letterSpacing = 0.2.sp),
-        labelMedium = base.labelMedium.copy(letterSpacing = 0.2.sp, fontWeight = FontWeight.Medium)
+        labelSmall = base.labelSmall.copy(letterSpacing = 0.4.sp),
+        labelMedium = base.labelMedium.copy(letterSpacing = 0.8.sp, fontWeight = FontWeight.Medium)
     )
 }
 
