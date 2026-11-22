@@ -69,7 +69,7 @@ fun AlarmsScreen() {
         alarms.forEach { alarm ->
             DayflowCard(onClick={editing=alarm;showDialog=true}) {
                 Row(verticalAlignment=Alignment.CenterVertically) {
-                    Box(Modifier.size(52.dp).clip(CircleShape).background(Burgundy.copy(alpha=.09f)),contentAlignment=Alignment.Center) { Icon(Icons.Rounded.Alarm,tint=Burgundy,contentDescription=null,modifier=Modifier.size(28.dp)) }
+                    Box(Modifier.size(52.dp).clip(CircleShape).background(Burgundy.copy(alpha=.09f)),contentAlignment=Alignment.Center) { Icon(Icons.Rounded.Alarm, null, tint=Burgundy, modifier=Modifier.size(28.dp)) }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(String.format(Locale.getDefault(),"%02d:%02d",alarm.hour,alarm.minute),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold,color=TextPrimary)
