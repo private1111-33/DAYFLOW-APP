@@ -4,7 +4,7 @@ import android.content.ComponentName
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.animateFloat\nimport androidx.compose.animation.core.rememberInfiniteTransition\nimport androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -204,7 +204,7 @@ fun MusicScreen() {
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = { showLyrics = !showLyrics }) {
-                        Icon(if (showLyrics) Icons.Default.Album else Icons.Default.Lyrics, null, tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(if (showLyrics) Icons.Default.Album else Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(6.dp))
                         Text(if (showLyrics) "PLAYER" else "LYRICS", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.SemiBold)
                     }
