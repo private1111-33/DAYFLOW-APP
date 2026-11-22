@@ -19,6 +19,11 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.URL
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -54,6 +59,11 @@ fun MusicScreen() {
     var dragValue by remember { mutableFloatStateOf(0f) }
     var shuffle by remember { mutableStateOf(false) }
     var repeatAll by remember { mutableStateOf(false) }
+    var spotifyUrl by remember { mutableStateOf("") }
+    var spotifyInfo by remember { mutableStateOf<String?>(null) }
+    var spotifyError by remember { mutableStateOf<String?>(null) }
+    var lookingUpSpotify by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val vinylRotation = rememberInfiniteTransition(label = "vinyl").animateFloat(0f, 360f, infiniteRepeatable(tween(8000, easing = LinearEasing)), label = "vinylRotation")
 
     fun clock(ms: Long): String {
@@ -148,6 +158,34 @@ fun MusicScreen() {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Music Player", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             IconButton(onClick = { picker.launch(arrayOf("audio/*")) }) { Icon(Icons.Default.MoreVert, "Import music", tint = MaterialTheme.colorScheme.primary) }
+        }
+        DayflowCard {
+            Text("Add from Spotify", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(value = spotifyUrl, onValueChange = { spotifyUrl = it; spotifyError = null }, label = { Text("Paste Spotify track link") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Button(enabled = !lookingUpSpotify && spotifyUrl.isNotBlank(), onClick = {
+                scope.launch {
+                    lookingUpSpotify = true
+                    spotifyInfo = null
+                    spotifyError = null
+                    try {
+                        val result = withContext(Dispatchers.IO) {
+                            val endpoint = "https://open.spotify.com/oembed?url=" + Uri.encode(spotifyUrl.trim())
+                            val connection = URL(endpoint).openConnection()
+                            connection.connectTimeout = 10000
+                            connection.readTimeout = 10000
+                            connection.getInputStream().bufferedReader().use { JSONObject(it.readText()) }
+                        }
+                        spotifyInfo = result.optString("title").ifBlank { "Spotify track recognized" }
+                    } catch (_: Exception) {
+                        spotifyError = "Link not recognized. Paste a public Spotify track URL."
+                    } finally {
+                        lookingUpSpotify = false
+                    }
+                }
+            }) { Text(if (lookingUpSpotify) "Checking link…" else "Get track details") }
+            spotifyInfo?.let { Text("Found: $it", color = MaterialTheme.colorScheme.onSurface) }
+            spotifyError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            Text("Spotify links can identify a track, but Spotify does not provide its protected audio for download into DAYFLOW. Import an audio file you own or have permission to download to play it here.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
         Card(modifier = Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)) {
             Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
