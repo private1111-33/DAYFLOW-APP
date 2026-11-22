@@ -1,20 +1,39 @@
 package com.dayflow.app.ui.screens
 
 import android.content.ComponentName
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -27,8 +46,10 @@ import com.dayflow.app.data.MusicStore
 import com.dayflow.app.data.MusicTrack
 import com.dayflow.app.service.DayflowPlaybackService
 
+private data class LocalTrackInfo(val artist: String, val artwork: Bitmap?)
+
 @Composable
-fun MusicScreen() {
+fun MusicScreen(onOpenSearch: () -> Unit = {}) {
     val context = LocalContext.current
     val tracks = remember {
         mutableStateListOf<MusicTrack>().apply {
@@ -37,6 +58,26 @@ fun MusicScreen() {
             })
         }
     }
+    val trackInfo by produceState(initialValue = emptyMap<String, LocalTrackInfo>(), tracks.toList()) {
+        value = withContext(Dispatchers.IO) {
+            tracks.associate { track ->
+                val retriever = MediaMetadataRetriever()
+                val info = try {
+                    retriever.setDataSource(context, Uri.parse(track.uri))
+                    val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                        ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST).orEmpty()
+                    val art = retriever.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                    track.uri to LocalTrackInfo(artist.ifBlank { "Unknown artist" }, art)
+                } catch (_: Exception) {
+                    track.uri to LocalTrackInfo("Unknown artist", null)
+                } finally {
+                    runCatching { retriever.release() }
+                }
+                info
+            }
+        }
+    }
+
     val token = remember {
         SessionToken(context, ComponentName(context, DayflowPlaybackService::class.java))
     }
@@ -163,17 +204,62 @@ fun MusicScreen() {
         }
     }
 
+    val currentTrack = tracks.getOrNull(currentIndex)
+    val currentInfo = currentTrack?.let { trackInfo[it.uri] }
+    val lyricAccent = currentInfo?.artwork?.let { bitmap ->
+        runCatching { Color(bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)) }.getOrNull()
+    } ?: BurgundyLight
+    val vinylTransition = rememberInfiniteTransition(label = "vinyl-spin")
+    val vinylRotation by vinylTransition.animateFloat(
+        initialValue = 0f, targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(9000), RepeatMode.Restart),
+        label = "vinyl-rotation"
+    )
+
     ScreenColumn {
-        SectionTitle("Music", "Your offline library")
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                SectionTitle("Music", "Your personal music library")
+            }
+            IconButton(onClick = onOpenSearch) {
+                Icon(Icons.Default.Search, contentDescription = "Search music online", tint = MaterialTheme.colorScheme.primary)
+            }
+        }
         DayflowCard {
-            Box(Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(88.dp))
+            Box(Modifier.fillMaxWidth().height(178.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.size(158.dp).graphicsLayer { rotationZ = if (playing) vinylRotation else 0f }
+                        .clip(CircleShape).background(Color(0xFF101013))
+                        .border(5.dp, Color(0xFF29252A), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    repeat(3) { ring ->
+                        Box(
+                            Modifier.size((132 - ring * 22).dp)
+                                .border(1.dp, Color(0xFF373239), CircleShape)
+                        )
+                    }
+                    Box(
+                        Modifier.size(54.dp).clip(CircleShape)
+                            .background(lyricAccent).border(3.dp, Color(0xFF171416), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (currentInfo?.artwork != null) {
+                            Image(currentInfo.artwork.asImageBitmap(), "Album cover",
+                                Modifier.fillMaxSize().clip(CircleShape))
+                        } else {
+                            Icon(Icons.Default.MusicNote, null, tint = Color.White, modifier = Modifier.size(25.dp))
+                        }
+                    }
+                }
             }
             Text(
-                if (tracks.isEmpty()) "Nothing playing" else tracks.getOrNull(currentIndex)?.name ?: "Audio track",
+                if (tracks.isEmpty()) "Nothing playing" else currentTrack?.name ?: "Audio track",
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleLarge
             )
+            Text(currentInfo?.artist ?: if (tracks.isEmpty()) "Add music to get started" else "Unknown artist",
+                color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             Text(
                 if (tracks.isEmpty()) "Import audio files from your device" else "Track ${currentIndex + 1} of ${tracks.size}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -253,21 +339,29 @@ fun MusicScreen() {
         }
         currentLyrics?.let { lyric ->
             DayflowCard {
-                Text("Now playing lyrics", style = MaterialTheme.typography.titleMedium)
-                if (lyric.artist.isNotBlank()) Text(lyric.artist, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (lyric.lines.isNotEmpty()) {
-                    lyric.lines.forEachIndexed { index, line ->
-                        Text(line.text,
-                            color = if (index == activeLyricIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (index == activeLyricIndex) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                player?.seekTo(line.timeMs)
-                                position = line.timeMs
-                                activeLyricIndex = index
-                            }.padding(vertical = 4.dp))
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                        .background(lyricAccent.copy(alpha = 0.16f)).padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("LYRICS", style = MaterialTheme.typography.labelMedium, color = lyricAccent)
+                    Text(lyric.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    if (lyric.artist.isNotBlank()) Text(lyric.artist, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (lyric.lines.isNotEmpty()) {
+                        lyric.lines.forEachIndexed { index, line ->
+                            Text(line.text,
+                                color = if (index == activeLyricIndex) lyricAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = if (index == activeLyricIndex) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
+                                style = if (index == activeLyricIndex) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    player?.seekTo(line.timeMs)
+                                    position = line.timeMs
+                                    activeLyricIndex = index
+                                }.padding(vertical = 5.dp))
+                        }
+                    } else {
+                        Text(lyric.plainText, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                } else {
-                    Text(lyric.plainText, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -279,28 +373,41 @@ fun MusicScreen() {
         if (tracks.isEmpty()) {
             PlaceholderNote("Choose audio files from your phone. Your library stays available offline.")
         } else {
-            tracks.forEachIndexed { index, track ->
-                DayflowCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(12.dp))
-                        Text(track.name, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
-                        IconButton(enabled = player != null, onClick = {
-                            player?.let { active ->
-                                active.setMediaItems(mediaItems(), index, 0L)
-                                active.prepare()
-                                active.play()
-                                currentIndex = index
+            trackInfo.entries.groupBy { it.value.artist }.toSortedMap().forEach { (artist, artistTracks) ->
+                Text(artist, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                artistTracks.forEach { (uri, info) ->
+                    val index = tracks.indexOfFirst { it.uri == uri }
+                    val track = tracks.getOrNull(index) ?: return@forEach
+                    DayflowCard {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (info.artwork != null) {
+                                Image(info.artwork.asImageBitmap(), "Album artwork",
+                                    Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)))
+                            } else {
+                                Box(Modifier.size(54.dp).clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
+                                }
                             }
-                        }) { Icon(Icons.Default.PlayArrow, "Play track") }
-                        IconButton(onClick = {
-                            player?.let { active ->
-                                if (active.mediaItemCount > index) active.removeMediaItem(index)
-                            }
-                            tracks.removeAt(index)
-                            persist()
-                            currentIndex = if (tracks.isEmpty()) 0 else currentIndex.coerceAtMost(tracks.lastIndex)
-                        }) { Icon(Icons.Default.Delete, "Remove track") }
+                            Spacer(Modifier.width(12.dp))
+                            Text(track.name, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
+                            IconButton(enabled = player != null, onClick = {
+                                player?.let { active ->
+                                    active.setMediaItems(mediaItems(), index, 0L)
+                                    active.prepare()
+                                    active.play()
+                                    currentIndex = index
+                                }
+                            }) { Icon(Icons.Default.PlayArrow, "Play track") }
+                            IconButton(onClick = {
+                                player?.let { active ->
+                                    if (active.mediaItemCount > index) active.removeMediaItem(index)
+                                }
+                                tracks.removeAt(index)
+                                persist()
+                                currentIndex = if (tracks.isEmpty()) 0 else currentIndex.coerceAtMost(tracks.lastIndex)
+                            }) { Icon(Icons.Default.Delete, "Remove track") }
+                        }
                     }
                 }
             }
