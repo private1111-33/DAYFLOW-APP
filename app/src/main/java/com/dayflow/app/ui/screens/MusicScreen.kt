@@ -74,7 +74,12 @@ fun MusicScreen() {
     var lyricsTitle by remember { mutableStateOf<String?>(null) }
     val lyricsListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val vinylRotation = rememberInfiniteTransition(label = "vinyl").animateFloat(0f, 360f, infiniteRepeatable(tween(8000, easing = LinearEasing)), label = "vinylRotation")
+    val vinylRotation = remember { Animatable(0f) }
+    LaunchedEffect(playing) {
+        if (playing) {
+            while (true) vinylRotation.animateTo(vinylRotation.value + 360f, animationSpec = tween(4500, easing = LinearEasing))
+        }
+    }
 
     fun clock(ms: Long): String {
         val total = (ms / 1000).coerceAtLeast(0)
@@ -202,9 +207,23 @@ fun MusicScreen() {
         Card(modifier = Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)) {
             Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
-                    Box(Modifier.fillMaxHeight(.88f).aspectRatio(1f).graphicsLayer { rotationZ = if (playing) vinylRotation.value else 0f }.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(0xFF171717)).border(2.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = .35f), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
-                        repeat(5) { ring -> Box(Modifier.fillMaxWidth(.40f + ring * .10f).aspectRatio(1f).border(1.dp, androidx.compose.ui.graphics.Color.LightGray.copy(alpha = .18f), androidx.compose.foundation.shape.CircleShape)) }
-                        Box(Modifier.size(92.dp).clip(androidx.compose.foundation.shape.CircleShape).background(MaterialTheme.colorScheme.onPrimary), contentAlignment = Alignment.Center) { Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp)) }
+                    Box(Modifier.fillMaxHeight(.88f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                        Box(Modifier.fillMaxSize().graphicsLayer { rotationZ = vinylRotation.value }.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Brush.radialGradient(listOf(androidx.compose.ui.graphics.Color(0xFF383838), androidx.compose.ui.graphics.Color(0xFF101010), androidx.compose.ui.graphics.Color(0xFF242424)))).border(2.dp, androidx.compose.ui.graphics.Color(0xFF777777), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+                            repeat(8) { ring ->
+                                Box(Modifier.fillMaxWidth(.30f + ring * .085f).aspectRatio(1f).border(if (ring % 2 == 0) 1.dp else .5.dp, androidx.compose.ui.graphics.Color.White.copy(alpha = if (ring % 2 == 0) .18f else .09f), androidx.compose.foundation.shape.CircleShape))
+                            }
+                            Box(Modifier.size(106.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color(0xFFB77A82), androidx.compose.ui.graphics.Color(0xFF642D39)))), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                    Icon(Icons.Default.MusicNote, null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(34.dp))
+                                    Text("DAYFLOW", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                    Box(Modifier.padding(top = 5.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(0xFF171717)))
+                                }
+                            }
+                            Box(Modifier.fillMaxWidth(.96f).height(2.dp).background(androidx.compose.ui.graphics.Color.White.copy(alpha = .10f)))
+                        }
+                        // Tone arm rests beside the disc, like a real turntable.
+                        Box(Modifier.align(Alignment.TopEnd).padding(end = 8.dp, top = 8.dp).width(7.dp).height(92.dp).graphicsLayer { rotationZ = -24f }.clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).background(androidx.compose.ui.graphics.Color(0xFFD6D0C7)))
+                        Box(Modifier.align(Alignment.TopEnd).padding(end = 3.dp, top = 2.dp).size(16.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(0xFFB7A99A)))
                     }
                 }
                 Text(if(tracks.isEmpty()) "Nothing playing" else tracks.getOrNull(currentIndex)?.name ?: "Audio track", color=MaterialTheme.colorScheme.onPrimary, style=MaterialTheme.typography.headlineSmall, fontWeight=androidx.compose.ui.text.font.FontWeight.Bold, maxLines=1)
