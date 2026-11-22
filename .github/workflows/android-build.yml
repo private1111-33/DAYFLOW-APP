@@ -48,8 +48,6 @@ jobs:
           files: DAYFLOW.apk
           make_latest: true
           overwrite_files: true
-          repository: private1111-33/DAYFLOW-RELEASES
-          token: ${{ secrets.RELEASES_TOKEN }}
 
   screenshots:
     needs: build
