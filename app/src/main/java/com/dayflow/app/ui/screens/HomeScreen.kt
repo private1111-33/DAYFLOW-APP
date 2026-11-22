@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,7 +53,7 @@ fun HomeScreen(
                 Text("Keep going, you're doing great!", color = TextSecondary)
             }
             IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Default.Settings, "Settings", tint = Burgundy)
+                Icon(Icons.Rounded.Settings, "Settings", tint = Burgundy)
             }
         }
 
@@ -67,9 +67,9 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Stat(Icons.Default.MenuBook, words.size.toString(), "Words")
-                Stat(Icons.Default.LocalFireDepartment, tasks.count { it.done }.toString(), "Tasks Done")
-                Stat(Icons.Default.EmojiEvents, "$accuracy%", "Accuracy")
+                Stat(Icons.Rounded.MenuBook, words.size.toString(), "Words")
+                Stat(Icons.Rounded.LocalFireDepartment, tasks.count { it.done }.toString(), "Tasks Done")
+                Stat(Icons.Rounded.EmojiEvents, "$accuracy%", "Accuracy")
             }
         }
 
@@ -79,7 +79,7 @@ fun HomeScreen(
             shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Burgundy)
         ) {
-            Icon(Icons.Default.PlayArrow, null)
+            Icon(Icons.Rounded.PlayArrow, null)
             Spacer(Modifier.width(8.dp))
             Text("Continue Learning", fontWeight = FontWeight.SemiBold)
         }
@@ -91,14 +91,14 @@ fun HomeScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                QuickAction("Word List", Icons.Default.MenuBook, onOpenVocabulary, Modifier.weight(1f))
-                QuickAction("Quizzes", Icons.Default.SportsEsports, onOpenQuiz, Modifier.weight(1f))
-                QuickAction("Progress", Icons.Default.BarChart, onOpenProgress, Modifier.weight(1f))
+                QuickAction("Word List", Icons.Rounded.MenuBook, onOpenVocabulary, Modifier.weight(1f))
+                QuickAction("Quizzes", Icons.Rounded.SportsEsports, onOpenQuiz, Modifier.weight(1f))
+                QuickAction("Progress", Icons.Rounded.BarChart, onOpenProgress, Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                QuickAction("Tasks", Icons.Default.AssignmentTurnedIn, onOpenPlanner, Modifier.weight(1f))
-                QuickAction("Music", Icons.Default.MusicNote, onOpenMusic, Modifier.weight(1f))
-                QuickAction("Alarm", Icons.Default.Notifications, onOpenAlarms, Modifier.weight(1f))
+                QuickAction("Tasks", Icons.Rounded.AssignmentTurnedIn, onOpenPlanner, Modifier.weight(1f))
+                QuickAction("Music", Icons.Rounded.MusicNote, onOpenMusic, Modifier.weight(1f))
+                QuickAction("Alarm", Icons.Rounded.Notifications, onOpenAlarms, Modifier.weight(1f))
             }
         }
 
@@ -114,7 +114,7 @@ fun HomeScreen(
                     Text("You're making progress!", color = TextPrimary, fontWeight = FontWeight.Bold)
                     Text("$learned words learned", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
-                Icon(Icons.Default.ChevronRight, null, tint = Burgundy)
+                Icon(Icons.Rounded.ChevronRight, null, tint = Burgundy)
             }
         }
 
@@ -124,7 +124,7 @@ fun HomeScreen(
         }
         DayflowCard(onClick = onOpenAlarms) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Alarm, null, tint = Burgundy, modifier = Modifier.size(28.dp))
+                Icon(Icons.Rounded.Alarm, null, tint = Burgundy, modifier = Modifier.size(28.dp))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
@@ -133,7 +133,7 @@ fun HomeScreen(
                     )
                     Text(nextAlarm?.label?.ifBlank { "Daily reminder" } ?: "Add an alarm to stay on track", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
-                Icon(Icons.Default.ChevronRight, null, tint = TextSecondary)
+                Icon(Icons.Rounded.ChevronRight, null, tint = TextSecondary)
             }
         }
         Text(SimpleDateFormat("EEEE, MMMM d", Locale.ENGLISH).format(Date()), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
