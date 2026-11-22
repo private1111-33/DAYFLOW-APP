@@ -264,7 +264,7 @@ fun MusicScreen() {
                                     lyricsTitle = listOf(match.optString("trackName"), match.optString("artistName")).filter { it.isNotBlank() }.joinToString(" • ")
                                     val synced = match.optString("syncedLyrics")
                                     if (synced.isNotBlank()) {
-                                        val parsed = Regex("""\\[(\\d{2}):(\\d{2}\\.\\d{2,3})\\](.*)""")
+                                        val parsed = Regex("""\[(\d{2}):(\d{2}\.\d{2,3})\](.*)""")
                                         lyricsLines = synced.lines().flatMap { line ->
                                             parsed.findAll(line).map { found ->
                                                 val min = found.groupValues[1].toLong()
