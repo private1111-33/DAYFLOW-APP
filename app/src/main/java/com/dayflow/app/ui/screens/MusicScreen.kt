@@ -34,6 +34,9 @@ import androidx.compose.animation.core.tween
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.URL
+import java.net.URLEncoder
+import org.json.JSONObject
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -67,7 +70,22 @@ fun MusicScreen(onOpenSearch: () -> Unit = {}) {
                     retriever.setDataSource(context, Uri.parse(track.uri))
                     val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                         ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST).orEmpty()
-                    val art = retriever.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                    var art = retriever.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                    if (art == null && track.name.isNotBlank()) {
+                        art = runCatching {
+                            val term = URLEncoder.encode(track.name + " " + artist, "UTF-8")
+                            val connection = URL("https://itunes.apple.com/search?term=$term&entity=song&limit=1")
+                                .openConnection() as java.net.HttpURLConnection
+                            connection.connectTimeout = 7000
+                            connection.readTimeout = 7000
+                            val json = try { JSONObject(connection.inputStream.bufferedReader().use { it.readText() }) }
+                                finally { connection.disconnect() }
+                            val results = json.optJSONArray("results")
+                            val artworkUrl = results?.optJSONObject(0)?.optString("artworkUrl100").orEmpty()
+                            if (artworkUrl.isBlank()) null else URL(artworkUrl.replace("100x100", "600x600"))
+                                .openStream().use { BitmapFactory.decodeStream(it) }
+                        }.getOrNull()
+                    }
                     track.uri to LocalTrackInfo(artist.ifBlank { "Unknown artist" }, art)
                 } catch (_: Exception) {
                     track.uri to LocalTrackInfo("Unknown artist", null)
