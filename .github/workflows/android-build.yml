@@ -88,12 +88,12 @@ jobs:
             adb pull /sdcard/alarms.png screenshots/03-alarms.png
             adb shell input tap 756 2250
             sleep 2
-            adb shell screencap -p /sdcard/vocabulary.png
-            adb pull /sdcard/vocabulary.png screenshots/04-vocabulary.png
-            adb shell input tap 972 2250
-            sleep 3
             adb shell screencap -p /sdcard/music.png
-            adb pull /sdcard/music.png screenshots/05-music.png
+            adb pull /sdcard/music.png screenshots/04-music.png
+            adb shell input tap 1010 350
+            sleep 3
+            adb shell screencap -p /sdcard/discover.png
+            adb pull /sdcard/discover.png screenshots/05-music-discover.png
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         with:
