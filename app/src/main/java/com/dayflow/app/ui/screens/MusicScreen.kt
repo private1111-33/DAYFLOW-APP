@@ -20,6 +20,8 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.dayflow.app.data.DayflowLyrics
+import com.dayflow.app.data.DayflowTrackLyrics
 import com.dayflow.app.data.MusicStore
 import com.dayflow.app.data.MusicTrack
 import com.dayflow.app.service.DayflowPlaybackService
@@ -49,6 +51,9 @@ fun MusicScreen() {
     var dragValue by remember { mutableFloatStateOf(0f) }
     var shuffle by remember { mutableStateOf(false) }
     var repeatAll by remember { mutableStateOf(false) }
+    var currentLyrics by remember { mutableStateOf<DayflowTrackLyrics?>(null) }
+    var activeLyricIndex by remember { mutableIntStateOf(-1) }
+    var lyricsLoading by remember { mutableStateOf(false) }
 
     fun clock(ms: Long): String {
         val total = (ms / 1000).coerceAtLeast(0)
@@ -64,6 +69,25 @@ fun MusicScreen() {
                 }
             }
             delay(500)
+        }
+    }
+
+    LaunchedEffect(currentIndex, tracks.size) {
+        val track = tracks.getOrNull(currentIndex)
+        currentLyrics = null
+        activeLyricIndex = -1
+        if (track != null) {
+            lyricsLoading = true
+            currentLyrics = runCatching { DayflowLyrics.identifyAndLoad(context, track.uri) }.getOrNull()
+            lyricsLoading = false
+        }
+    }
+
+    LaunchedEffect(playing, currentLyrics) {
+        while (playing && currentLyrics?.lines?.isNotEmpty() == true) {
+            val now = player?.currentPosition ?: 0L
+            activeLyricIndex = currentLyrics?.lines?.indexOfLast { it.timeMs <= now } ?: -1
+            delay(120)
         }
     }
 
