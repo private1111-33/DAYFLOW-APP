@@ -3,7 +3,7 @@ name: Build DAYFLOW APK and UI screenshots
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "master", "design/reference-match-v1" ]
+    branches: [ "main", "master", "design/reference-match-v1", "feature/auto-lyrics-vinyl-player" ]
 
 permissions:
   contents: write
@@ -23,6 +23,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
+      - name: Build unsigned debug APK for validation
+        run: gradle assembleDebug
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DAYFLOW-debug-validation
+          path: app/build/outputs/apk/debug/app-debug.apk
       - name: Prepare release signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
