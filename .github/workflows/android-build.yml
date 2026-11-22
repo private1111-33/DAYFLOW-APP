@@ -30,6 +30,8 @@ jobs:
           echo "name=$VERSION" >> "$GITHUB_OUTPUT"
       - name: Build debug APK
         run: gradle assembleDebug
+      - name: Prepare release APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk DAYFLOW.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -43,7 +45,7 @@ jobs:
           body: |
             DAYFLOW Android app release v${{ steps.version.outputs.name }}.
             Download DAYFLOW.apk and install it on your Android device.
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: DAYFLOW.apk
           make_latest: true
           overwrite_files: true
 
