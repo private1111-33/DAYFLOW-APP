@@ -34,7 +34,6 @@ private val DayflowColors = lightColorScheme(
 
 private val DayflowTypography = Typography().let { base ->
     base.copy(
-        defaultFontFamily = FontFamily.SansSerif,
         displayLarge = base.displayLarge.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, letterSpacing = (-0.6).sp),
         displayMedium = base.displayMedium.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp),
         headlineLarge = base.headlineLarge.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp),
