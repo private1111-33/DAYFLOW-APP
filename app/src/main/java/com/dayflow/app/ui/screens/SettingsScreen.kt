@@ -24,7 +24,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onOpenMusic: () -> Unit = {}) {
+fun SettingsScreen(onBack: () -> Unit, onOpenMusic: () -> Unit = {}, onOpenPrivateRoom: () -> Unit = {}) {
     val context = LocalContext.current
     var pendingBackup by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
@@ -126,6 +126,13 @@ fun SettingsScreen(onBack: () -> Unit, onOpenMusic: () -> Unit = {}) {
         DayflowCard {
             Text("Learning Preferences", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
             Text("Your vocabulary and daily learning activity are stored on this device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DayflowCard(onClick = onOpenPrivateRoom) {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Private Room", modifier = androidx.compose.ui.Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+                Text("›", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleLarge)
+            }
+            Text("A password-protected space for your private photos and videos.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         DayflowCard(onClick = onOpenMusic) {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
