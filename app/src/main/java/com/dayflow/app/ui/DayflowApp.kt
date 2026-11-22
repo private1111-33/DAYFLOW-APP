@@ -21,6 +21,7 @@ private data class NavItem(val route: String, val label: String, val icon: Image
 
 @Composable
 fun DayflowApp() {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val navController = rememberNavController()
     val items = listOf(
         NavItem("home", "Home", Icons.Rounded.Home),
@@ -37,10 +38,10 @@ fun DayflowApp() {
         } else {
             val now = System.currentTimeMillis()
             if (now - lastBackPress < 2000L) {
-                (androidx.compose.ui.platform.LocalContext.current as? android.app.Activity)?.finish()
+                (context as? android.app.Activity)?.finish()
             } else {
                 lastBackPress = now
-                Toast.makeText(androidx.compose.ui.platform.LocalContext.current, "اضغط مرة أخرى للخروج", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "اضغط مرة أخرى للخروج", Toast.LENGTH_SHORT).show()
             }
         }
     }
