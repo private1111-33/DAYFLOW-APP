@@ -69,6 +69,7 @@ fun MusicScreen() {
     var repeatAll by remember { mutableStateOf(false) }
     var showLyrics by remember { mutableStateOf(false) }
     var metadata by remember { mutableStateOf<TrackMetadata?>(null) }
+    val trackMetadata = remember { mutableStateMapOf<String, TrackMetadata>() }
     var lyrics by remember { mutableStateOf<TrackLyrics?>(null) }
     var lyricsLoading by remember { mutableStateOf(false) }
     val lyricsListState = rememberLazyListState()
@@ -139,6 +140,16 @@ fun MusicScreen() {
     }
 
     val currentTrack = tracks.getOrNull(currentIndex)
+    LaunchedEffect(tracks.map { it.uri }) {
+        val activeUris = tracks.map { it.uri }.toSet()
+        trackMetadata.keys.toList().filterNot { it in activeUris }.forEach(trackMetadata::remove)
+        tracks.forEach { track ->
+            if (track.uri !in trackMetadata) {
+                trackMetadata[track.uri] = TrackMetadataReader.read(context, Uri.parse(track.uri), track.name)
+            }
+        }
+    }
+
     LaunchedEffect(currentTrack?.uri, currentTrack?.name) {
         metadata = null
         lyrics = null
@@ -312,30 +323,55 @@ fun MusicScreen() {
                 Text("Your playlist is empty", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
                 Text("Import audio files from your phone to listen offline.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        } else tracks.forEachIndexed { index, track ->
-            DayflowCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(track.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                        Text(if (index == currentIndex) "Now playing" else "Audio track", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
-                    }
-                    IconButton(enabled = player != null, onClick = {
-                        player?.let { active -> active.setMediaItems(mediaItems(), index, 0L); active.prepare(); active.play(); currentIndex = index }
-                    }) {
-                        Icon(if (index == currentIndex && playing) Icons.Default.Pause else Icons.Default.PlayArrow, "Play track", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    IconButton(onClick = {
-                        player?.let { if (it.mediaItemCount > index) it.removeMediaItem(index) }
-                        tracks.removeAt(index)
-                        persist()
-                        currentIndex = if (tracks.isEmpty()) 0 else currentIndex.coerceAtMost(tracks.lastIndex)
-                    }) { Icon(Icons.Default.Delete, "Remove track", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+        } else {
+            tracks.withIndex()
+                .groupBy { (_, track) ->
+                    trackMetadata[track.uri]?.artist
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() && !it.equals("Unknown artist", ignoreCase = true) }
+                        ?.lowercase()
+                        ?: "__unknown_artist__"
                 }
-            }
+                .forEach { (artistKey, artistTracks) ->
+                    val artistLabel = artistTracks.firstOrNull()?.value?.let { track ->
+                        trackMetadata[track.uri]?.artist
+                            ?.takeIf { it.isNotBlank() && !it.equals("Unknown artist", ignoreCase = true) }
+                    } ?: "Unknown artist"
+                    Text(
+                        artistLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp)
+                    )
+                    artistTracks.forEach { indexedTrack ->
+                        val index = indexedTrack.index
+                        val track = indexedTrack.value
+                        DayflowCard {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(track.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                    Text(if (index == currentIndex) "Now playing" else artistLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+                                }
+                                IconButton(enabled = player != null, onClick = {
+                                    player?.let { active -> active.setMediaItems(mediaItems(), index, 0L); active.prepare(); active.play(); currentIndex = index }
+                                }) {
+                                    Icon(if (index == currentIndex && playing) Icons.Default.Pause else Icons.Default.PlayArrow, "Play track", tint = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(onClick = {
+                                    player?.let { if (it.mediaItemCount > index) it.removeMediaItem(index) }
+                                    tracks.removeAt(index)
+                                    persist()
+                                    currentIndex = if (tracks.isEmpty()) 0 else currentIndex.coerceAtMost(tracks.lastIndex)
+                                }) { Icon(Icons.Default.Delete, "Remove track", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            }
+                        }
+                    }
+                }
         }
     }
 }
@@ -405,6 +441,7 @@ private fun LyricsPanel(
                 ) {
                     itemsIndexed(lyrics.lines) { index, line ->
                         val selected = lyrics.isSynced && index == activeIndex
+                        val isArabic = remember(line.text) { Regex("[\\u0600-\\u06FF]").containsMatchIn(line.text) }
                         Text(
                             line.text,
                             modifier = Modifier
@@ -414,7 +451,7 @@ private fun LyricsPanel(
                                 .padding(horizontal = 10.dp, vertical = 4.dp),
                             color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = if (lyrics.isSynced) .48f else .82f),
                             style = if (selected) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
-                            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                            fontWeight = if (isArabic) FontWeight.Bold else if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
                             textAlign = TextAlign.Center
                         )
                     }
