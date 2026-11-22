@@ -68,12 +68,14 @@ fun DayflowApp() {
                     onOpenPlanner = { navController.navigate("planner") },
                     onOpenAlarms = { navController.navigate("alarms") },
                     onOpenVocabulary = { openTab("vocabulary") },
+                    onOpenQuiz = { navController.navigate("quiz") },
                     onOpenMusic = { navController.navigate("music") }
                 )
             }
             composable("planner") { PlannerScreen() }
             composable("alarms") { AlarmsScreen() }
             composable("vocabulary") { VocabularyScreen() }
+            composable("quiz") { QuizScreen(onBack = { openTab("home") }) }
             composable("music") { MusicScreen() }
             composable("progress") { ProgressScreen(onBack = { openTab("home") }) }
             composable("settings") { SettingsScreen(onBack = { openTab("home") }) }
