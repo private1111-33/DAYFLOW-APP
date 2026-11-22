@@ -36,6 +36,8 @@ private const val PRIVATE_ROOM_PASSWORD = "13225"
 private const val VAULT_FOLDER = "Download/DAYFLOW Private/"
 private const val VAULT_MIME = "application/octet-stream"
 
+private data class VaultEntry(val uri: android.net.Uri, val name: String, val size: Long)
+
 private fun deriveVaultKey(password: String, salt: ByteArray): SecretKeySpec {
     val spec = PBEKeySpec(password.toCharArray(), salt, 180_000, 256)
     val key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
@@ -120,6 +122,7 @@ fun PrivateRoomScreen(onBack: () -> Unit) {
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val savedUris = mutableListOf<android.net.Uri>()
+        val mediaStoreUris = mutableListOf<android.net.Uri>()
         var failed = 0
         uris.forEach { sourceUri ->
             runCatching {
@@ -136,16 +139,17 @@ fun PrivateRoomScreen(onBack: () -> Unit) {
                 val target = resolver.insert(vaultCollection, values) ?: error("Cannot create encrypted vault item")
                 val targetStream = resolver.openOutputStream(target) ?: error("Cannot save encrypted vault item")\n                encryptVaultFile(source, targetStream, PRIVATE_ROOM_PASSWORD)
                 savedUris += sourceUri
+                if (sourceUri.authority == "media") mediaStoreUris += sourceUri
             }.onFailure { failed++ }
         }
         refresh++
-        if (savedUris.isNotEmpty() && Build.VERSION.SDK_INT >= 30) {
+        if (mediaStoreUris.isNotEmpty() && Build.VERSION.SDK_INT >= 30) {
             runCatching {
-                val request = MediaStore.createDeleteRequest(resolver, savedUris)
+                val request = MediaStore.createDeleteRequest(resolver, mediaStoreUris)
                 deleteOriginals.launch(IntentSenderRequest.Builder(request.intentSender).build())
             }.onFailure { message = "Encrypted copy saved. Android could not request removal of the original; remove it manually from Gallery if desired." }
         } else if (savedUris.isNotEmpty()) {
-            message = "Encrypted copy saved. Remove the original from Gallery manually if you want it hidden."
+            message = "Encrypted copy saved. Android did not provide a deletable Gallery item for this picker selection; remove the original manually if you want it hidden."
         } else message = "Could not encrypt selected media."
         if (failed > 0) message = "${message ?: ""} ($failed file(s) failed.)"
     }
