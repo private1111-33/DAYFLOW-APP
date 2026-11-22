@@ -13,6 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.border
+import androidx.compose.animation.core.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -51,6 +54,7 @@ fun MusicScreen() {
     var dragValue by remember { mutableFloatStateOf(0f) }
     var shuffle by remember { mutableStateOf(false) }
     var repeatAll by remember { mutableStateOf(false) }
+    val vinylRotation = rememberInfiniteTransition(label = "vinyl").animateFloat(0f, 360f, infiniteRepeatable(tween(8000, easing = LinearEasing)), label = "vinylRotation")
 
     fun clock(ms: Long): String {
         val total = (ms / 1000).coerceAtLeast(0)
@@ -147,8 +151,11 @@ fun MusicScreen() {
         }
         Card(modifier = Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(26.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)) {
             Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.onPrimary.copy(alpha=.12f)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(112.dp))
+                Box(Modifier.fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxHeight(.88f).aspectRatio(1f).graphicsLayer { rotationZ = if (playing) vinylRotation.value else 0f }.clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(0xFF171717)).border(2.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = .35f), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+                        repeat(5) { ring -> Box(Modifier.fillMaxWidth(.40f + ring * .10f).aspectRatio(1f).border(1.dp, androidx.compose.ui.graphics.Color.LightGray.copy(alpha = .18f), androidx.compose.foundation.shape.CircleShape)) }
+                        Box(Modifier.size(92.dp).clip(androidx.compose.foundation.shape.CircleShape).background(MaterialTheme.colorScheme.onPrimary), contentAlignment = Alignment.Center) { Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp)) }
+                    }
                 }
                 Text(if(tracks.isEmpty()) "Nothing playing" else tracks.getOrNull(currentIndex)?.name ?: "Audio track", color=MaterialTheme.colorScheme.onPrimary, style=MaterialTheme.typography.headlineSmall, fontWeight=androidx.compose.ui.text.font.FontWeight.Bold, maxLines=1)
                 Text(if(tracks.isEmpty()) "Your offline music" else "DAYFLOW • Track ${currentIndex+1} of ${tracks.size}", color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.8f))
