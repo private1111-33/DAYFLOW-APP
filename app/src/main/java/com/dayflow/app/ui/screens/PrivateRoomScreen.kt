@@ -43,27 +43,32 @@ private fun deriveVaultKey(password: String, salt: ByteArray): SecretKeySpec {
     return SecretKeySpec(key, "AES")
 }
 
-private fun encryptVaultFile(input: InputStream, password: String): ByteArray {
-    val plain = input.use { source -> ByteArrayOutputStream().use { out -> source.copyTo(out); out.toByteArray() } }
+private fun encryptVaultFile(input: InputStream, output: java.io.OutputStream, password: String) {
     val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
     val iv = ByteArray(12).also { SecureRandom().nextBytes(it) }
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
     cipher.init(Cipher.ENCRYPT_MODE, deriveVaultKey(password, salt), GCMParameterSpec(128, iv))
-    val encrypted = cipher.doFinal(plain)
-    return byteArrayOf(68, 70, 86, 49) + salt + iv + encrypted
+    output.write(byteArrayOf(68, 70, 86, 49))
+    output.write(salt)
+    output.write(iv)
+    javax.crypto.CipherOutputStream(output, cipher).use { encrypted -> input.use { it.copyTo(encrypted) } }
 }
 
-private fun decryptVaultFile(input: InputStream, password: String): ByteArray {
-    val bytes = input.use { it.readBytes() }
-    require(bytes.size > 32 && bytes.copyOfRange(0, 4).contentEquals(byteArrayOf(68, 70, 86, 49))) { "Invalid vault file" }
-    val salt = bytes.copyOfRange(4, 20)
-    val iv = bytes.copyOfRange(20, 32)
+private fun decryptVaultFile(input: InputStream, output: java.io.OutputStream, password: String) {
+    val header = ByteArray(32)
+    var offset = 0
+    while (offset < header.size) {
+        val count = input.read(header, offset, header.size - offset)
+        if (count < 0) throw java.io.IOException("Incomplete encrypted file")
+        offset += count
+    }
+    require(header.copyOfRange(0, 4).contentEquals(byteArrayOf(68, 70, 86, 49))) { "Invalid vault file" }
+    val salt = header.copyOfRange(4, 20)
+    val iv = header.copyOfRange(20, 32)
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
     cipher.init(Cipher.DECRYPT_MODE, deriveVaultKey(password, salt), GCMParameterSpec(128, iv))
-    return cipher.doFinal(bytes.copyOfRange(32, bytes.size))
+    javax.crypto.CipherInputStream(input, cipher).use { decrypted -> output.use { decrypted.copyTo(it) } }
 }
-
-private data class VaultEntry(val uri: android.net.Uri, val name: String, val size: Long)
 
 @Composable
 fun PrivateRoomScreen(onBack: () -> Unit) {
@@ -122,14 +127,14 @@ fun PrivateRoomScreen(onBack: () -> Unit) {
                     if (c.moveToFirst()) c.getString(0) else null
                 } ?: "private_${System.currentTimeMillis()}.bin"
                 val safeName = originalName.substringAfterLast('/').replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "private.bin" }
-                val encrypted = resolver.openInputStream(sourceUri)?.use { encryptVaultFile(it, PRIVATE_ROOM_PASSWORD) } ?: error("Cannot read selected file")
+                val source = resolver.openInputStream(sourceUri) ?: error("Cannot read selected file")
                 val values = ContentValues().apply {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, "${System.currentTimeMillis()}_$safeName.dfvault")
                     put(MediaStore.MediaColumns.MIME_TYPE, VAULT_MIME)
                     put(MediaStore.MediaColumns.RELATIVE_PATH, VAULT_FOLDER)
                 }
                 val target = resolver.insert(vaultCollection, values) ?: error("Cannot create encrypted vault item")
-                resolver.openOutputStream(target)?.use { it.write(encrypted) } ?: error("Cannot save encrypted vault item")
+                val targetStream = resolver.openOutputStream(target) ?: error("Cannot save encrypted vault item")\n                encryptVaultFile(source, targetStream, PRIVATE_ROOM_PASSWORD)
                 savedUris += sourceUri
             }.onFailure { failed++ }
         }
@@ -147,7 +152,7 @@ fun PrivateRoomScreen(onBack: () -> Unit) {
 
     fun restoreToGallery(entry: VaultEntry) {
         runCatching {
-            val decrypted = resolver.openInputStream(entry.uri)?.use { decryptVaultFile(it, PRIVATE_ROOM_PASSWORD) } ?: error("Cannot read encrypted file")
+            val encryptedInput = resolver.openInputStream(entry.uri) ?: error("Cannot read encrypted file")
             val originalName = entry.name.substringAfter('_', entry.name).ifBlank { "restored_media" }
             val isVideo = originalName.substringAfterLast('.', "").lowercase() in listOf("mp4", "mkv", "3gp", "webm", "mov")
             val collection = if (isVideo) MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
@@ -160,7 +165,7 @@ fun PrivateRoomScreen(onBack: () -> Unit) {
                 if (Build.VERSION.SDK_INT >= 29) put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
             val outputUri = resolver.insert(collection, values) ?: error("Could not create gallery item")
-            resolver.openOutputStream(outputUri)?.use { it.write(decrypted) } ?: error("Could not write restored file")
+            val restoredOutput = resolver.openOutputStream(outputUri) ?: error("Could not write restored file")\n            decryptVaultFile(encryptedInput, restoredOutput, PRIVATE_ROOM_PASSWORD)
             if (Build.VERSION.SDK_INT >= 29) {
                 resolver.update(outputUri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
             }
