@@ -217,9 +217,15 @@ fun MusicSearchScreen() {
                 }
                 if (lyricsLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 lyrics?.let { lyric ->
-                    HorizontalDivider()
-                    Text(if (lyric.synced) "Synced lyrics" else "Lyrics", fontWeight = FontWeight.SemiBold)
-                    Text(lyric.text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .background(artworkColor.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(if (lyric.synced) "Synced lyrics" else "Lyrics", fontWeight = FontWeight.SemiBold)
+                        Text(lyric.text, color = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
         }
