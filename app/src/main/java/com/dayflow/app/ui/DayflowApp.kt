@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -30,7 +31,7 @@ fun DayflowApp() {
     val navController = rememberNavController()
     val items = listOf(
         NavItem("home", "Home", Icons.Filled.Home),
-        NavItem("planner", "Tasks", Icons.Filled.CalendarMonth),
+        NavItem("planner", "Tasks", Icons.Filled.TaskAlt),
         NavItem("alarms", "Alarm", Icons.Filled.Alarm),
         NavItem("vocabulary", "Words", Icons.Filled.MenuBook),
         NavItem("music", "Music", Icons.Filled.MusicNote)
