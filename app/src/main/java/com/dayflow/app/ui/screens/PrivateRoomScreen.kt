@@ -28,6 +28,7 @@ private const val PRIVATE_ROOM_PASSWORD = "13225"
 fun PrivateRoomScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val folder = remember { File(context.filesDir, "private_room").apply { mkdirs() } }
+    var unlocked by remember { mutableStateOf(false) }
     DisposableEffect(context) {
         val app = context.applicationContext as Application
         val callbacks = object : Application.ActivityLifecycleCallbacks {
@@ -42,7 +43,6 @@ fun PrivateRoomScreen(onBack: () -> Unit) {
         app.registerActivityLifecycleCallbacks(callbacks)
         onDispose { app.unregisterActivityLifecycleCallbacks(callbacks) }
     }
-    var unlocked by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
     var refresh by remember { mutableIntStateOf(0) }
