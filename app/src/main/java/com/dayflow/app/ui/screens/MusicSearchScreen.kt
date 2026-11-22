@@ -45,7 +45,9 @@ private data class FoundTrack(
     val artist: String,
     val artwork: String,
     val preview: String,
-    val durationMs: Long
+    val durationMs: Long,
+    val lyricsText: String = "",
+    val hasSyncedLyrics: Boolean = false
 )
 
 private data class LyricsData(val text: String, val synced: Boolean)
