@@ -115,10 +115,14 @@ fun SettingsScreen(onBack: () -> Unit) {
 
     ScreenColumn {
         TextButton(onClick = onBack) { Text("← Back") }
-        SectionTitle("Settings", "Make DAYFLOW work your way")
+        SectionTitle("Settings", "Learn. Improve. Repeat.")
         DayflowCard {
-            Text("Appearance", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
-            Text("Dark theme · Black, charcoal and burgundy", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Dayflow User", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
+            Text("Learn. Improve. Repeat.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DayflowCard {
+            Text("Learning Preferences", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+            Text("Your vocabulary and daily learning activity are stored on this device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         DayflowCard {
             Text("Reminders & alarms", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
