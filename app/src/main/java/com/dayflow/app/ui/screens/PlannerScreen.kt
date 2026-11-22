@@ -44,12 +44,12 @@ fun PlannerScreen() {
     ScreenColumn {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Tasks", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Text(selected.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.ENGLISH)), color = TextSecondary)
+                Text("Tasks", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(selected.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.ENGLISH)), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = { filter = "All" }) { Icon(Icons.Rounded.Search, "Search tasks", tint = Burgundy) }
+            IconButton(onClick = { filter = "All" }) { Icon(Icons.Rounded.Search, "Search tasks", tint = MaterialTheme.colorScheme.primary) }
         }
-        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = Burgundy), modifier = Modifier.fillMaxWidth()) {
+        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.CheckCircle, null, tint = Color.White, modifier = Modifier.size(34.dp))
@@ -65,27 +65,27 @@ fun PlannerScreen() {
                 }
             }
         }
-        Button(onClick = { editingTask = null; title = ""; time = ""; showAdd = true }, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(18.dp), colors = ButtonDefaults.buttonColors(containerColor = Burgundy)) {
+        Button(onClick = { editingTask = null; title = ""; time = ""; showAdd = true }, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(18.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
             Icon(Icons.Rounded.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Task", fontWeight = FontWeight.SemiBold)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("All", "Pending", "Completed").forEach { item ->
-                FilterChip(selected = filter == item, onClick = { filter = item }, label = { Text(item) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Burgundy, selectedLabelColor = Color.White))
+                FilterChip(selected = filter == item, onClick = { filter = item }, label = { Text(item) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = Color.White))
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Select day", color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Select day", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { selected = selected.minusDays(1) }) { Icon(Icons.Rounded.ChevronLeft, null) }
-                Text(if(selected == today) "Today" else selected.format(DateTimeFormatter.ofPattern("MMM d")), color = Burgundy, fontWeight = FontWeight.SemiBold)
+                Text(if(selected == today) "Today" else selected.format(DateTimeFormatter.ofPattern("MMM d")), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 IconButton(onClick = { selected = selected.plusDays(1) }) { Icon(Icons.Rounded.ChevronRight, null) }
             }
         }
         if (visibleTasks.isEmpty()) {
             DayflowCard {
-                Icon(Icons.Rounded.AssignmentTurnedIn, null, tint = Burgundy, modifier = Modifier.size(34.dp))
-                Text(if(dayTasks.isEmpty()) "Nothing planned yet" else "No tasks here", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                Text("Add a task to organize your day.", color = TextSecondary)
+                Icon(Icons.Rounded.AssignmentTurnedIn, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(34.dp))
+                Text(if(dayTasks.isEmpty()) "Nothing planned yet" else "No tasks here", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                Text("Add a task to organize your day.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else visibleTasks.sortedWith(compareBy<DayTask>{it.done}.thenBy{it.time}).forEach { task ->
             DayflowCard {
@@ -93,13 +93,13 @@ fun PlannerScreen() {
                     Checkbox(checked = task.done, onCheckedChange = { checked ->
                         val i = tasks.indexOfFirst { it.id == task.id }; if(i >= 0) tasks[i] = task.copy(done = checked)
                         LocalStore.saveTasks(context, tasks.toList())
-                    }, colors = CheckboxDefaults.colors(checkedColor = Burgundy))
+                    }, colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary))
                     Column(Modifier.weight(1f)) {
-                        Text(task.title, color = if(task.done) TextSecondary else TextPrimary, fontWeight = FontWeight.SemiBold)
-                        Text(task.time.ifBlank { "Any time" }, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                        Text(task.title, color = if(task.done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                        Text(task.time.ifBlank { "Any time" }, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                     }
-                    IconButton(onClick = { editingTask = task; title = task.title; time = task.time; showAdd = true }) { Icon(Icons.Rounded.Edit, "Edit", tint = Burgundy) }
-                    IconButton(onClick = { pendingDelete = task }) { Icon(Icons.Rounded.DeleteOutline, "Delete", tint = TextSecondary) }
+                    IconButton(onClick = { editingTask = task; title = task.title; time = task.time; showAdd = true }) { Icon(Icons.Rounded.Edit, "Edit", tint = MaterialTheme.colorScheme.primary) }
+                    IconButton(onClick = { pendingDelete = task }) { Icon(Icons.Rounded.DeleteOutline, "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             }
         }
@@ -109,6 +109,6 @@ fun PlannerScreen() {
             OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Task name") }, singleLine = true)
             OutlinedButton(onClick = { TimePickerDialog(context, { _, h, m -> time = String.format(Locale.ENGLISH,"%02d:%02d",h,m) },9,0,false).show() }, modifier = Modifier.fillMaxWidth()) { Text(time.ifBlank { "Choose time (optional)" }) }
         }
-    }, confirmButton = { TextButton(onClick = { if(title.isNotBlank()) { val old=editingTask; if(old==null) tasks.add(DayTask(System.currentTimeMillis(),title.trim(),time.trim(),false,selectedEpoch)) else { val i=tasks.indexOfFirst{it.id==old.id}; if(i>=0) tasks[i]=old.copy(title=title.trim(),time=time.trim()) }; LocalStore.saveTasks(context,tasks.toList()); showAdd=false; title=""; time=""; editingTask=null } }) { Text("Save",color=Burgundy) } }, dismissButton = { TextButton(onClick = { showAdd=false; editingTask=null }) { Text("Cancel") } })
+    }, confirmButton = { TextButton(onClick = { if(title.isNotBlank()) { val old=editingTask; if(old==null) tasks.add(DayTask(System.currentTimeMillis(),title.trim(),time.trim(),false,selectedEpoch)) else { val i=tasks.indexOfFirst{it.id==old.id}; if(i>=0) tasks[i]=old.copy(title=title.trim(),time=time.trim()) }; LocalStore.saveTasks(context,tasks.toList()); showAdd=false; title=""; time=""; editingTask=null } }) { Text("Save",color=MaterialTheme.colorScheme.primary) } }, dismissButton = { TextButton(onClick = { showAdd=false; editingTask=null }) { Text("Cancel") } })
     pendingDelete?.let { task -> ConfirmDialog(title="Delete task?",message=task.title,onConfirm={tasks.removeAll{it.id==task.id};LocalStore.saveTasks(context,tasks.toList());pendingDelete=null},onDismiss={pendingDelete=null}) }
 }

@@ -48,36 +48,36 @@ fun AlarmsScreen() {
     ScreenColumn {
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Alarm",style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold,color=TextPrimary)
-                Text("Stay on track",color=TextSecondary)
+                Text("Alarm",style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onSurface)
+                Text("Stay on track",color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            FilledIconButton(onClick={editing=null;showDialog=true},shape=CircleShape,colors=IconButtonDefaults.filledIconButtonColors(containerColor=Burgundy)) { Icon(Icons.Rounded.Add,null,tint=Color.White) }
+            FilledIconButton(onClick={editing=null;showDialog=true},shape=CircleShape,colors=IconButtonDefaults.filledIconButtonColors(containerColor=MaterialTheme.colorScheme.primary)) { Icon(Icons.Rounded.Add,null,tint=Color.White) }
         }
         Box(Modifier.fillMaxWidth().height(170.dp),contentAlignment=Alignment.Center) {
-            Box(Modifier.size(150.dp).clip(CircleShape).background(Burgundy.copy(alpha=.07f)))
-            Icon(Icons.Rounded.Alarm, null, tint=Burgundy, modifier=Modifier.size(112.dp))
+            Box(Modifier.size(150.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha=.07f)))
+            Icon(Icons.Rounded.Alarm, null, tint=MaterialTheme.colorScheme.primary, modifier=Modifier.size(112.dp))
         }
-        Text(if(alarms.isEmpty()) "No Alarms Yet" else "Your alarms",modifier=Modifier.fillMaxWidth(),textAlign=androidx.compose.ui.text.style.TextAlign.Center,color=TextPrimary,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-        Text(if(alarms.isEmpty()) "Add an alarm to stay on track" else "${alarms.count{it.enabled}} active reminders",modifier=Modifier.fillMaxWidth(),textAlign=androidx.compose.ui.text.style.TextAlign.Center,color=TextSecondary)
-        Button(onClick={editing=null;showDialog=true},modifier=Modifier.fillMaxWidth(.72f).height(54.dp).align(Alignment.CenterHorizontally),shape=RoundedCornerShape(18.dp),colors=ButtonDefaults.buttonColors(containerColor=Burgundy)) { Icon(Icons.Rounded.Add,null); Spacer(Modifier.width(8.dp)); Text("Add Alarm") }
+        Text(if(alarms.isEmpty()) "No Alarms Yet" else "Your alarms",modifier=Modifier.fillMaxWidth(),textAlign=androidx.compose.ui.text.style.TextAlign.Center,color=MaterialTheme.colorScheme.onSurface,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+        Text(if(alarms.isEmpty()) "Add an alarm to stay on track" else "${alarms.count{it.enabled}} active reminders",modifier=Modifier.fillMaxWidth(),textAlign=androidx.compose.ui.text.style.TextAlign.Center,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Button(onClick={editing=null;showDialog=true},modifier=Modifier.fillMaxWidth(.72f).height(54.dp).align(Alignment.CenterHorizontally),shape=RoundedCornerShape(18.dp),colors=ButtonDefaults.buttonColors(containerColor=MaterialTheme.colorScheme.primary)) { Icon(Icons.Rounded.Add,null); Spacer(Modifier.width(8.dp)); Text("Add Alarm") }
         if(permissionMissing) DayflowCard {
-            Text("Allow exact alarms",color=TextPrimary,fontWeight=FontWeight.Bold)
-            Text("Android may delay alarms without this permission.",color=TextSecondary)
+            Text("Allow exact alarms",color=MaterialTheme.colorScheme.onSurface,fontWeight=FontWeight.Bold)
+            Text("Android may delay alarms without this permission.",color=MaterialTheme.colorScheme.onSurfaceVariant)
             Button(onClick={runCatching{context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,Uri.parse("package:${context.packageName}")))}}) { Text("Grant permission") }
         }
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { Text("Your Alarms",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold,color=TextPrimary); Text("${alarms.size} saved",color=TextSecondary) }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { Text("Your Alarms",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onSurface); Text("${alarms.size} saved",color=MaterialTheme.colorScheme.onSurfaceVariant) }
         alarms.forEach { alarm ->
             DayflowCard(onClick={editing=alarm;showDialog=true}) {
                 Row(verticalAlignment=Alignment.CenterVertically) {
-                    Box(Modifier.size(52.dp).clip(CircleShape).background(Burgundy.copy(alpha=.09f)),contentAlignment=Alignment.Center) { Icon(Icons.Rounded.Alarm, null, tint=Burgundy, modifier=Modifier.size(28.dp)) }
+                    Box(Modifier.size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha=.09f)),contentAlignment=Alignment.Center) { Icon(Icons.Rounded.Alarm, null, tint=MaterialTheme.colorScheme.primary, modifier=Modifier.size(28.dp)) }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(String.format(Locale.getDefault(),"%02d:%02d",alarm.hour,alarm.minute),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold,color=TextPrimary)
-                        Text(alarm.label.ifBlank{"Daily alarm"},color=TextSecondary)
-                        Text(if(alarm.enabled) AlarmScheduler.daysSummary(alarm.days) else "Disabled",style=MaterialTheme.typography.labelSmall,color=Burgundy)
+                        Text(String.format(Locale.getDefault(),"%02d:%02d",alarm.hour,alarm.minute),style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onSurface)
+                        Text(alarm.label.ifBlank{"Daily alarm"},color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if(alarm.enabled) AlarmScheduler.daysSummary(alarm.days) else "Disabled",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
                     }
-                    Switch(checked=alarm.enabled,onCheckedChange={enabled->AlarmScheduler.cancel(context,alarm);val updated=alarm.copy(enabled=enabled);val i=alarms.indexOfFirst{it.id==alarm.id};if(i>=0)alarms[i]=updated;persist();if(enabled)AlarmScheduler.schedule(context,updated)},colors=SwitchDefaults.colors(checkedThumbColor=Color.White,checkedTrackColor=Burgundy))
-                    IconButton(onClick={pendingDelete=alarm}) { Icon(Icons.Rounded.DeleteOutline,"Delete",tint=TextSecondary) }
+                    Switch(checked=alarm.enabled,onCheckedChange={enabled->AlarmScheduler.cancel(context,alarm);val updated=alarm.copy(enabled=enabled);val i=alarms.indexOfFirst{it.id==alarm.id};if(i>=0)alarms[i]=updated;persist();if(enabled)AlarmScheduler.schedule(context,updated)},colors=SwitchDefaults.colors(checkedThumbColor=Color.White,checkedTrackColor=MaterialTheme.colorScheme.primary))
+                    IconButton(onClick={pendingDelete=alarm}) { Icon(Icons.Rounded.DeleteOutline,"Delete",tint=MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             }
         }
@@ -103,8 +103,8 @@ private fun AlarmEditorDialog(initial:DayAlarm?,onDismiss:()->Unit,onSave:(Int,I
         Column(verticalArrangement=Arrangement.spacedBy(14.dp)){
             OutlinedTextField(value=label,onValueChange={label=it},label={Text("Alarm label")},singleLine=true)
             OutlinedButton(onClick={TimePickerDialog(context,{_,h,m->hour=h;minute=m},hour,minute,false).show()},modifier=Modifier.fillMaxWidth()){Text(String.format(Locale.getDefault(),"%02d:%02d",hour,minute),style=MaterialTheme.typography.titleLarge)}
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){letters.forEachIndexed{i,l->val on=days and (1 shl i)!=0;Box(Modifier.size(32.dp).clip(CircleShape).background(if(on)Burgundy else SurfaceElevated).clickable{val n=days xor (1 shl i);if(n!=0)days=n},contentAlignment=Alignment.Center){Text(l,color=if(on)Color.White else TextSecondary,fontWeight=FontWeight.SemiBold)}}}
-            Text(AlarmScheduler.daysSummary(days),color=TextSecondary)
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){letters.forEachIndexed{i,l->val on=days and (1 shl i)!=0;Box(Modifier.size(32.dp).clip(CircleShape).background(if(on)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant).clickable{val n=days xor (1 shl i);if(n!=0)days=n},contentAlignment=Alignment.Center){Text(l,color=if(on)Color.White else MaterialTheme.colorScheme.onSurfaceVariant,fontWeight=FontWeight.SemiBold)}}}
+            Text(AlarmScheduler.daysSummary(days),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
-    },confirmButton={TextButton(onClick={onSave(hour,minute,label.trim().ifBlank{"Daily alarm"},days)}){Text("Save alarm",color=Burgundy)}},dismissButton={TextButton(onClick=onDismiss){Text("Cancel")}})
+    },confirmButton={TextButton(onClick={onSave(hour,minute,label.trim().ifBlank{"Daily alarm"},days)}){Text("Save alarm",color=MaterialTheme.colorScheme.primary)}},dismissButton={TextButton(onClick=onDismiss){Text("Cancel")}})
 }

@@ -14,10 +14,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import com.dayflow.app.ui.screens.*
-import com.dayflow.app.ui.theme.Background
-import com.dayflow.app.ui.theme.Surface
-import com.dayflow.app.ui.theme.Burgundy
-import com.dayflow.app.ui.theme.TextSecondary
+import com.dayflow.app.ui.theme.MaterialTheme.colorScheme.background
+import com.dayflow.app.ui.theme.MaterialTheme.colorScheme.surface
+import com.dayflow.app.ui.theme.MaterialTheme.colorScheme.primary
+import com.dayflow.app.ui.theme.MaterialTheme.colorScheme.onSurfaceVariant
 
 private data class NavItem(val route: String, val label: String, val icon: ImageVector)
 
@@ -40,9 +40,9 @@ fun DayflowApp() {
         }
     }
     Scaffold(
-        containerColor = Background,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (route != "splash") NavigationBar(containerColor = Surface, contentColor = MaterialTheme.colorScheme.onSurface) {
+            if (route != "splash") NavigationBar(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface) {
                 items.forEach { item ->
                     NavigationBarItem(
                         selected = route == item.route,
@@ -50,11 +50,11 @@ fun DayflowApp() {
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label, maxLines = 1, style = MaterialTheme.typography.labelSmall) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Burgundy,
-                            selectedTextColor = Burgundy,
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
                             indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }

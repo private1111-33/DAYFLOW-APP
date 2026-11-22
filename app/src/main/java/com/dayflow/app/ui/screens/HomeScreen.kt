@@ -49,18 +49,18 @@ fun HomeScreen(
     ScreenColumn {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(greeting, color = TextPrimary, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Text("Keep going, you're doing great!", color = TextSecondary)
+                Text(greeting, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("Keep going, you're doing great!", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Rounded.Settings, "Settings", tint = Burgundy)
+                Icon(Icons.Rounded.Settings, "Settings", tint = MaterialTheme.colorScheme.primary)
             }
         }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = Burgundy)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 19.dp, horizontal = 8.dp),
@@ -77,7 +77,7 @@ fun HomeScreen(
             onClick = onOpenVocabulary,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Burgundy)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Icon(Icons.Rounded.PlayArrow, null)
             Spacer(Modifier.width(8.dp))
@@ -85,8 +85,8 @@ fun HomeScreen(
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Quick Access", color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            TextButton(onClick = onOpenProgress) { Text("See All  ›", color = Burgundy) }
+            Text("Quick Access", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onOpenProgress) { Text("See All  ›", color = MaterialTheme.colorScheme.primary) }
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -105,38 +105,38 @@ fun HomeScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("🏆", style = MaterialTheme.typography.displaySmall)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("You're making progress!", color = TextPrimary, fontWeight = FontWeight.Bold)
-                    Text("$learned words learned", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text("You're making progress!", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                    Text("$learned words learned", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
-                Icon(Icons.Rounded.ChevronRight, null, tint = Burgundy)
+                Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.primary)
             }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Daily Reminder", color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            TextButton(onClick = onOpenAlarms) { Text("Manage", color = Burgundy) }
+            Text("Daily Reminder", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onOpenAlarms) { Text("Manage", color = MaterialTheme.colorScheme.primary) }
         }
         DayflowCard(onClick = onOpenAlarms) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.Alarm, null, tint = Burgundy, modifier = Modifier.size(28.dp))
+                Icon(Icons.Rounded.Alarm, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
                         nextAlarm?.let { String.format(Locale.ENGLISH, "%d:%02d %s", if (it.hour % 12 == 0) 12 else it.hour % 12, it.minute, if (it.hour < 12) "AM" else "PM") } ?: "No alarm set",
-                        color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold
+                        color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold
                     )
-                    Text(nextAlarm?.label?.ifBlank { "Daily reminder" } ?: "Add an alarm to stay on track", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text(nextAlarm?.label?.ifBlank { "Daily reminder" } ?: "Add an alarm to stay on track", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
-                Icon(Icons.Rounded.ChevronRight, null, tint = TextSecondary)
+                Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Text(SimpleDateFormat("EEEE, MMMM d", Locale.ENGLISH).format(Date()), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Text(SimpleDateFormat("EEEE, MMMM d", Locale.ENGLISH).format(Date()), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -155,17 +155,17 @@ private fun QuickAction(title: String, icon: androidx.compose.ui.graphics.vector
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(17.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
             Modifier.fillMaxWidth().padding(vertical = 13.dp, horizontal = 3.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
-            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(SurfaceElevated), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = Burgundy, modifier = Modifier.size(23.dp))
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(23.dp))
             }
-            Text(title, color = TextPrimary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
     }
 }
