@@ -45,6 +45,7 @@ import com.dayflow.app.data.DayflowTrackLyrics
 import com.dayflow.app.data.MusicStore
 import com.dayflow.app.data.MusicTrack
 import com.dayflow.app.service.DayflowPlaybackService
+import com.dayflow.app.ui.theme.BurgundyLight
 
 private data class LocalTrackInfo(val artist: String, val artwork: Bitmap?)
 
