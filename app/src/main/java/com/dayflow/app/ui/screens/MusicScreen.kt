@@ -1,6 +1,9 @@
 package com.dayflow.app.ui.screens
 
 import android.app.DownloadManager
+import android.media.MediaMetadataRetriever
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.content.ComponentName
 import android.content.Context
 import android.os.Environment
@@ -15,6 +18,7 @@ import kotlinx.coroutines.withContext
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -22,6 +26,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -66,6 +72,11 @@ fun MusicScreen() {
     var onlineResults by remember { mutableStateOf<List<ArchiveTrack>>(emptyList()) }
     var searching by remember { mutableStateOf(false) }
     var searchMessage by remember { mutableStateOf<String?>(null) }
+    var currentArtist by remember { mutableStateOf("Unknown artist") }
+    var artwork by remember { mutableStateOf<Bitmap?>(null) }
+    var lyrics by remember { mutableStateOf<List<LyricLine>>(emptyList()) }
+    var plainLyrics by remember { mutableStateOf<String?>(null) }
+    var lyricsMessage by remember { mutableStateOf("Play a song to find its lyrics.") }
     val scope = rememberCoroutineScope()
 
     fun clock(ms: Long): String {
@@ -86,6 +97,22 @@ fun MusicScreen() {
     }
 
     fun persist() = MusicStore.save(context, tracks.toList())
+
+    LaunchedEffect(currentIndex, tracks.size) {
+        val track = tracks.getOrNull(currentIndex)
+        if (track == null) {
+            currentArtist = "Unknown artist"; artwork = null; lyrics = emptyList(); plainLyrics = null
+            lyricsMessage = "Play a song to find its lyrics."
+        } else {
+            val details = withContext(Dispatchers.IO) { readAudioDetails(context, Uri.parse(track.uri)) }
+            currentArtist = details.artist.ifBlank { "Unknown artist" }
+            artwork = details.artwork
+            val found = withContext(Dispatchers.IO) { fetchLyrics(details.title.ifBlank { track.name }, details.artist, duration) }
+            lyrics = found.first
+            plainLyrics = found.second
+            lyricsMessage = if (found.first.isEmpty() && found.second.isNullOrBlank()) "Lyrics are not available for this track." else ""
+        }
+    }
 
     fun mediaItems(): List<MediaItem> = tracks.map { track ->
         MediaItem.Builder()
@@ -161,12 +188,12 @@ fun MusicScreen() {
             Text("Music Player", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.headlineMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             IconButton(onClick = { picker.launch(arrayOf("audio/*")) }) { Icon(Icons.Default.MoreVert, "Import music", tint = MaterialTheme.colorScheme.primary) }
         }
-        OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search downloadable music") }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, trailingIcon = {
+        OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Search by song name or link") }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, trailingIcon = {
             IconButton(enabled = searchQuery.isNotBlank() && !searching, onClick = {
                 scope.launch {
                     searching = true
                     searchMessage = null
-                    val outcome = runCatching { searchArchiveAudio(searchQuery.trim()) }
+                    val outcome = runCatching { searchArchiveAudio(searchTermFromInput(searchQuery.trim())) }
                     onlineResults = outcome.getOrDefault(emptyList())
                     searchMessage = when { outcome.isFailure -> "Search is temporarily unavailable."; onlineResults.isEmpty() -> "No tracks with an explicit download-friendly license were found."; else -> null }
                     searching = false
@@ -197,7 +224,7 @@ fun MusicScreen() {
                     Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(112.dp))
                 }
                 Text(if(tracks.isEmpty()) "Nothing playing" else tracks.getOrNull(currentIndex)?.name ?: "Audio track", color=MaterialTheme.colorScheme.onPrimary, style=MaterialTheme.typography.headlineSmall, fontWeight=androidx.compose.ui.text.font.FontWeight.Bold, maxLines=1)
-                Text(if(tracks.isEmpty()) "Your offline music" else "DAYFLOW • Track ${currentIndex+1} of ${tracks.size}", color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.8f))
+                Text(if(tracks.isEmpty()) "Your offline music" else "$currentArtist • Track ${currentIndex+1} of ${tracks.size}", color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.8f))
                 Slider(value=(if(dragging)dragValue else position.toFloat()).coerceIn(0f,maxOf(duration.toFloat(),1f)),onValueChange={dragging=true;dragValue=it},onValueChangeFinished={player?.seekTo(dragValue.toLong());position=dragValue.toLong();dragging=false},valueRange=0f..maxOf(duration.toFloat(),1f),enabled=player!=null&&duration>0,colors=SliderDefaults.colors(thumbColor=MaterialTheme.colorScheme.onPrimary,activeTrackColor=MaterialTheme.colorScheme.onPrimary,inactiveTrackColor=MaterialTheme.colorScheme.onPrimary.copy(alpha=.25f)))
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(clock(if(dragging)dragValue.toLong() else position),color=MaterialTheme.colorScheme.onPrimary,style=MaterialTheme.typography.labelSmall);Text(clock(duration),color=MaterialTheme.colorScheme.onPrimary,style=MaterialTheme.typography.labelSmall)}
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly,verticalAlignment=Alignment.CenterVertically){
@@ -209,6 +236,15 @@ fun MusicScreen() {
                 }
                 if(player==null) Text("Connecting to player…",color=MaterialTheme.colorScheme.onPrimary.copy(alpha=.75f),style=MaterialTheme.typography.labelSmall)
             }
+        }
+        DayflowCard {
+            Text("Lyrics", color=MaterialTheme.colorScheme.onSurface, style=MaterialTheme.typography.titleLarge, fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)
+            val activeLine = lyrics.lastOrNull { it.timeMs <= position }?.text
+            if (lyrics.isNotEmpty()) {
+                lyrics.take(80).forEach { line ->
+                    Text(line.text, color=if (line.text == activeLine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight=if (line.text == activeLine) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal, style=MaterialTheme.typography.bodyMedium)
+                }
+            } else Text(plainLyrics ?: lyricsMessage, color=MaterialTheme.colorScheme.onSurfaceVariant, style=MaterialTheme.typography.bodySmall)
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
             Column { Text("Playlist",style=MaterialTheme.typography.titleLarge,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold,color=MaterialTheme.colorScheme.onSurface); Text("${tracks.size} songs",color=MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -266,4 +302,58 @@ private suspend fun searchArchiveAudio(query: String): List<ArchiveTrack> = with
         accepted.add(ArchiveTrack(doc.optString("title", identifier), doc.optString("creator", "Unknown artist"), licenseText, "https://archive.org/download/$identifier/${Uri.encode(fileName, "/")}", safeName))
     }
     accepted
+}
+
+
+private data class AudioDetails(val title: String, val artist: String, val artwork: Bitmap?)
+private data class LyricLine(val timeMs: Long, val text: String)
+
+private fun readAudioDetails(context: Context, uri: Uri): AudioDetails {
+    val retriever = MediaMetadataRetriever()
+    return try {
+        retriever.setDataSource(context, uri)
+        val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE).orEmpty()
+        val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+            ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST).orEmpty()
+        val art = retriever.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        AudioDetails(title, artist, art)
+    } catch (_: Exception) {
+        AudioDetails("", "", null)
+    } finally { runCatching { retriever.release() } }
+}
+
+private suspend fun fetchLyrics(title: String, artist: String, durationMs: Long): Pair<List<LyricLine>, String?> =
+    withContext(Dispatchers.IO) {
+        if (title.isBlank()) return@withContext emptyList<LyricLine>() to null
+        val params = "track_name=" + URLEncoder.encode(title, "UTF-8") +
+            if (artist.isNotBlank() && artist != "Unknown artist") "&artist_name=" + URLEncoder.encode(artist, "UTF-8") else ""
+        val durationParam = if (durationMs > 0) "&duration=" + (durationMs / 1000) else ""
+        val connection = (URL("https://lrclib.net/api/get?" + params + durationParam).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 9000; readTimeout = 9000
+            setRequestProperty("User-Agent", "DAYFLOW Android Music Player")
+        }
+        try {
+            val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            parseLrc(json.optString("syncedLyrics")) to json.optString("plainLyrics").takeIf { it.isNotBlank() }
+        } catch (_: Exception) { emptyList<LyricLine>() to null }
+        finally { connection.disconnect() }
+    }
+
+private fun parseLrc(value: String): List<LyricLine> {
+    val regex = Regex("\\[(\\d{1,2}):(\\d{2})(?:\\.(\\d{1,3}))?\\](.*)")
+    return value.lineSequence().mapNotNull { line ->
+        val match = regex.find(line) ?: return@mapNotNull null
+        val min = match.groupValues[1].toLongOrNull() ?: 0L
+        val sec = match.groupValues[2].toLongOrNull() ?: 0L
+        val fraction = match.groupValues[3].padEnd(3, '0').take(3).toLongOrNull() ?: 0L
+        LyricLine((min * 60 + sec) * 1000 + fraction, match.groupValues[4].trim())
+    }.sortedBy { it.timeMs }.toList()
+}
+
+private fun searchTermFromInput(input: String): String {
+    val uri = runCatching { Uri.parse(input) }.getOrNull()
+    if (uri?.scheme == "http" || uri?.scheme == "https") {
+        return uri.lastPathSegment.orEmpty().substringBefore('?').replace('-', ' ').replace('_', ' ').ifBlank { input }
+    }
+    return input
 }
