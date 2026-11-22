@@ -34,8 +34,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+            statusBarStyle = SystemBarStyle.auto(
+                lightScrim = android.graphics.Color.TRANSPARENT,
+                darkScrim = android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                lightScrim = android.graphics.Color.TRANSPARENT,
+                darkScrim = android.graphics.Color.TRANSPARENT
+            )
         )
         setContent {
             val notificationPermission = rememberLauncherForActivityResult(
@@ -61,13 +67,10 @@ class MainActivity : ComponentActivity() {
 
             DayflowTheme {
                 DayflowApp()
-
                 availableUpdate?.let { update ->
                     AlertDialog(
                         onDismissRequest = { if (!downloading) availableUpdate = null },
-                        title = {
-                            Text("تحديث جديد متاح", fontWeight = FontWeight.Bold)
-                        },
+                        title = { Text("تحديث جديد متاح", fontWeight = FontWeight.Bold) },
                         text = {
                             Text(
                                 "يتوفر DAYFLOW إصدار ${update.versionName}. " +
@@ -101,9 +104,7 @@ class MainActivity : ComponentActivity() {
                             TextButton(
                                 enabled = !downloading,
                                 onClick = { availableUpdate = null }
-                            ) {
-                                Text("لاحقًا")
-                            }
+                            ) { Text("لاحقًا") }
                         }
                     )
                 }
