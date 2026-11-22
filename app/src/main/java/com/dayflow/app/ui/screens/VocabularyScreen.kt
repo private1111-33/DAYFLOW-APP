@@ -34,6 +34,7 @@ fun VocabularyScreen() {
     var showAdd by remember { mutableStateOf(false) }
     var editingWord by remember { mutableStateOf<WordEntry?>(null) }
     var importMessage by remember { mutableStateOf<String?>(null) }
+    fun save() = LocalStore.saveWords(context, words.toList())
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching { ExcelVocabularyImporter.read(context, uri) }
             .onSuccess { imported ->
@@ -67,7 +68,6 @@ fun VocabularyScreen() {
         }
     }
 
-    fun save() = LocalStore.saveWords(context, words.toList())
     // Used by "Hard": move on to the next word that is still being reviewed.
     fun advance() { reveal = false; index = if (due.size <= 1) 0 else (safeIndex + 1) % due.size }
 
