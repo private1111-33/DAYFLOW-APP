@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -245,6 +246,29 @@ fun MusicScreen() {
             if (player == null) {
                 Text("Connecting to player…", color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall)
+            }
+        }
+        if (lyricsLoading) {
+            Text("Finding lyrics…", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+        }
+        currentLyrics?.let { lyric ->
+            DayflowCard {
+                Text("Now playing lyrics", style = MaterialTheme.typography.titleMedium)
+                if (lyric.artist.isNotBlank()) Text(lyric.artist, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (lyric.lines.isNotEmpty()) {
+                    lyric.lines.forEachIndexed { index, line ->
+                        Text(line.text,
+                            color = if (index == activeLyricIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (index == activeLyricIndex) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                player?.seekTo(line.timeMs)
+                                position = line.timeMs
+                                activeLyricIndex = index
+                            }.padding(vertical = 4.dp))
+                    }
+                } else {
+                    Text(lyric.plainText, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         AccentButton("＋  Import songs") { picker.launch(arrayOf("audio/*")) }
