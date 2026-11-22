@@ -1,110 +1,85 @@
 package com.dayflow.app.receiver
 
-import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.dayflow.app.MainActivity
 import com.dayflow.app.data.AlarmScheduler
 import com.dayflow.app.data.AlarmStore
+import com.dayflow.app.service.AlarmRingService
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_TIME_CHANGED,
-            Intent.ACTION_TIMEZONE_CHANGED -> {
+            Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 AlarmScheduler.rescheduleAll(context)
                 return
             }
-            ACTION_SNOOZE -> {
-                scheduleSnooze(context, intent)
-                return
-            }
-            ACTION_SNOOZE_FIRE -> {
-                showAlarmNotification(context, intent.getIntExtra("alarm_id", -1),
-                    intent.getStringExtra("alarm_label").orEmpty())
-                return
-            }
         }
 
-        val id = intent.getIntExtra("alarm_id", -1)
-        val label = intent.getStringExtra("alarm_label").orEmpty().ifBlank { "DAYFLOW alarm" }
+        val id = intent.getIntExtra(AlarmScheduler.EXTRA_ID, -1)
         if (id < 0) return
+        val label = intent.getStringExtra(AlarmScheduler.EXTRA_LABEL).orEmpty().ifBlank { "DAYFLOW alarm" }
+        val isSnooze = intent.getBooleanExtra(AlarmScheduler.EXTRA_SNOOZE, false)
 
-        // Schedule the next daily occurrence before showing this occurrence.
-        AlarmStore.all(context).firstOrNull { it.id == id && it.enabled }?.let {
-            AlarmScheduler.schedule(context, it)
+        // Schedule tomorrow's occurrence before ringing this one.
+        if (!isSnooze) {
+            AlarmStore.all(context).firstOrNull { it.id == id && it.enabled }?.let {
+                AlarmScheduler.schedule(context, it)
+            }
         }
-        showAlarmNotification(context, id, label)
-    }
 
-    private fun scheduleSnooze(context: Context, source: Intent) {
-        val id = source.getIntExtra("alarm_id", -1)
-        if (id < 0) return
-        val label = source.getStringExtra("alarm_label").orEmpty().ifBlank { "DAYFLOW alarm" }
-        val fireIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = ACTION_SNOOZE_FIRE
-            putExtra("alarm_id", id)
-            putExtra("alarm_label", label)
-        }
-        val pending = PendingIntent.getBroadcast(
-            context, id + SNOOZE_REQUEST_OFFSET, fireIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val manager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val triggerAt = System.currentTimeMillis() + SNOOZE_MINUTES * 60_000L
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !manager.canScheduleExactAlarms()) {
-            manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pending)
-        } else {
-            manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pending)
+        val service = Intent(context, AlarmRingService::class.java)
+            .putExtra(AlarmScheduler.EXTRA_ID, id)
+            .putExtra(AlarmScheduler.EXTRA_LABEL, label)
+        try {
+            ContextCompat.startForegroundService(context, service)
+        } catch (_: Exception) {
+            // The system refused a foreground service: fall back to a loud notification.
+            showFallbackNotification(context, id, label)
         }
     }
 
-    private fun showAlarmNotification(context: Context, id: Int, label: String) {
-        if (id < 0) return
+    private fun showFallbackNotification(context: Context, id: Int, label: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "DAYFLOW alarms", NotificationManager.IMPORTANCE_HIGH)
+        val sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val channel = NotificationChannel(FALLBACK_CHANNEL, "DAYFLOW alarms (backup)", NotificationManager.IMPORTANCE_HIGH).apply {
+            setSound(
+                sound,
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
             )
+            enableVibration(true)
         }
-        val openApp = PendingIntent.getActivity(
+        manager.createNotificationChannel(channel)
+        val open = android.app.PendingIntent.getActivity(
             context, id, Intent(context, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
-        val snoozeIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = ACTION_SNOOZE
-            putExtra("alarm_id", id)
-            putExtra("alarm_label", label)
-        }
-        val snooze = PendingIntent.getBroadcast(
-            context, id + SNOOZE_ACTION_OFFSET, snoozeIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, FALLBACK_CHANNEL)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("It's time")
-            .setContentText(label.ifBlank { "DAYFLOW alarm" })
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentText(label)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setAutoCancel(true)
-            .setContentIntent(openApp)
-            .addAction(android.R.drawable.ic_lock_idle_alarm, "Snooze 10 min", snooze)
+            .setContentIntent(open)
             .build()
         manager.notify(id, notification)
     }
 
     companion object {
-        private const val CHANNEL_ID = "dayflow_alarms"
-        private const val ACTION_SNOOZE = "com.dayflow.app.action.SNOOZE"
-        private const val ACTION_SNOOZE_FIRE = "com.dayflow.app.action.SNOOZE_FIRE"
-        private const val SNOOZE_MINUTES = 10
-        private const val SNOOZE_ACTION_OFFSET = 2_000_000
-        private const val SNOOZE_REQUEST_OFFSET = 1_000_000
+        private const val FALLBACK_CHANNEL = "dayflow_alarm_fallback"
     }
 }

@@ -3,22 +3,19 @@
 A native Android starter for DAYFLOW, using Kotlin, Jetpack Compose and Material 3.
 
 ## Current state
-This is the **UI and navigation foundation**, not a finished productivity app or installable APK.
-Included:
-- Dark charcoal / burgundy visual system
-- Home, Planner, Alarms, Vocabulary, Music, Progress and Settings screens
-- Bottom navigation between the five main sections
-- Android project configuration and a GitHub Actions debug-build workflow
+Working today (all data is stored locally on the device):
+- Planner with a monthly calendar; tasks belong to a date and can have a time
+- Alarms with repeat days, edit, 10-minute snooze, looping sound on the alarm stream and vibration
+- Vocabulary cards with pronunciation (text-to-speech) and learned tracking
+- Music library imported from the device, background playback, seek bar, shuffle and repeat
+- Home dashboard, Progress screen, JSON backup and restore
+- GitHub Actions debug build and emulator screenshots
 
 Not implemented yet:
-- Room database and DataStore
-- Task CRUD and real calendar data
-- AlarmManager exact alarms, receivers, reboot handling and permissions
-- Vocabulary spaced-repetition engine and quizzes
-- Media3 playback, import, playlists and background controls
-- Backup/restore and production QA
-
-All sample values shown in the UI are design placeholders and must be replaced with real local data.
+- Room database (data currently lives in SharedPreferences)
+- Recurring tasks and task reminders
+- Spaced-repetition scheduling for vocabulary
+- Automated tests
 
 ## Project details
 - Application ID: `com.dayflow.app`

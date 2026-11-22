@@ -9,8 +9,15 @@ data class DayAlarm(
     val hour: Int,
     val minute: Int,
     val label: String,
-    val enabled: Boolean = true
-)
+    val enabled: Boolean = true,
+    /** Bit 0 = Sunday ... bit 6 = Saturday (same order as Calendar.DAY_OF_WEEK - 1). */
+    val days: Int = ALL_DAYS
+) {
+    companion object {
+        const val ALL_DAYS = 127
+        const val WEEKDAYS = 0b0111110 // Mon-Fri
+    }
+}
 
 object AlarmStore {
     private const val PREFS = "dayflow_alarms"
@@ -23,7 +30,8 @@ object AlarmStore {
             (0 until a.length()).map { i ->
                 val o = a.getJSONObject(i)
                 DayAlarm(o.getInt("id"), o.getInt("hour"), o.getInt("minute"),
-                    o.optString("label"), o.optBoolean("enabled", true))
+                    o.optString("label"), o.optBoolean("enabled", true),
+                    o.optInt("days", DayAlarm.ALL_DAYS).takeIf { it != 0 } ?: DayAlarm.ALL_DAYS)
             }.sortedWith(compareBy<DayAlarm> { it.hour }.thenBy { it.minute })
         } catch (_: Exception) { emptyList() }
     }
@@ -33,7 +41,7 @@ object AlarmStore {
         alarms.forEach { alarm ->
             a.put(JSONObject().put("id", alarm.id).put("hour", alarm.hour)
                 .put("minute", alarm.minute).put("label", alarm.label)
-                .put("enabled", alarm.enabled))
+                .put("enabled", alarm.enabled).put("days", alarm.days))
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY, a.toString()).apply()

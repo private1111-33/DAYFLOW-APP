@@ -1,14 +1,20 @@
 package com.dayflow.app.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.NotificationManagerCompat
 import com.dayflow.app.data.AlarmScheduler
 import com.dayflow.app.data.AlarmStore
 import com.dayflow.app.data.DayAlarm
 import com.dayflow.app.data.LocalStore
+import com.dayflow.app.data.MusicStore
+import com.dayflow.app.data.MusicTrack
 import com.dayflow.app.data.DayTask
 import com.dayflow.app.data.WordEntry
 import org.json.JSONArray
@@ -45,7 +51,8 @@ fun SettingsScreen(onBack: () -> Unit) {
                 val tasksJson = root.optJSONArray("tasks") ?: JSONArray()
                 val tasks = (0 until tasksJson.length()).map { i ->
                     val item = tasksJson.getJSONObject(i)
-                    DayTask(item.getLong("id"), item.getString("title"), item.optString("time"), item.optBoolean("done"))
+                    DayTask(item.getLong("id"), item.getString("title"), item.optString("time"), item.optBoolean("done"),
+                        item.optLong("date", java.time.LocalDate.now().toEpochDay()))
                 }
                 val wordsJson = root.optJSONArray("words") ?: JSONArray()
                 val words = (0 until wordsJson.length()).map { i ->
@@ -60,15 +67,19 @@ fun SettingsScreen(onBack: () -> Unit) {
                         item.optString("label"), item.optBoolean("enabled", true))
                 }
                 val musicJson = root.optJSONArray("music_tracks") ?: JSONArray()
-                val tracks = (0 until musicJson.length()).map { musicJson.getString(it) }
+                val tracks = (0 until musicJson.length()).map { i ->
+                    when (val entry = musicJson.get(i)) {
+                        is JSONObject -> MusicTrack(entry.getString("uri"), entry.optString("name"))
+                        else -> MusicTrack(entry.toString(), "")
+                    }
+                }
 
                 AlarmStore.all(context).forEach { AlarmScheduler.cancel(context, it) }
                 LocalStore.saveTasks(context, tasks)
                 LocalStore.saveWords(context, words)
                 AlarmStore.save(context, alarms)
                 AlarmScheduler.rescheduleAll(context)
-                context.getSharedPreferences("dayflow_music", android.content.Context.MODE_PRIVATE)
-                    .edit().putStringSet("tracks", tracks.toSet()).apply()
+                MusicStore.save(context, tracks)
             }.onSuccess { statusMessage = "Backup restored. Reopen the app sections to refresh their data." }
                 .onFailure { statusMessage = "Could not restore backup: ${it.localizedMessage}" }
         }
@@ -78,7 +89,7 @@ fun SettingsScreen(onBack: () -> Unit) {
         val tasks = JSONArray().apply {
             LocalStore.tasks(context).forEach { task ->
                 put(JSONObject().put("id", task.id).put("title", task.title)
-                    .put("time", task.time).put("done", task.done))
+                    .put("time", task.time).put("done", task.done).put("date", task.date))
             }
         }
         val words = JSONArray().apply {
@@ -94,8 +105,7 @@ fun SettingsScreen(onBack: () -> Unit) {
             }
         }
         val tracks = JSONArray().apply {
-            context.getSharedPreferences("dayflow_music", android.content.Context.MODE_PRIVATE)
-                .getStringSet("tracks", emptySet()).orEmpty().forEach { put(it) }
+            MusicStore.load(context).forEach { put(JSONObject().put("uri", it.uri).put("name", it.name)) }
         }
         return JSONObject().put("schema_version", 1).put("app", "DAYFLOW")
             .put("exported_at", System.currentTimeMillis())
@@ -112,7 +122,21 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
         DayflowCard {
             Text("Reminders & alarms", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
-            Text("Daily alarms with exact scheduling and 10-minute snooze.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Alarms with repeat days, exact scheduling and 10-minute snooze.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val notificationsOn = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            val exactOn = AlarmScheduler.canScheduleExact(context)
+            Text("Notifications: " + if (notificationsOn) "allowed" else "blocked",
+                color = if (notificationsOn) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
+            Text("Exact alarms: " + if (exactOn) "allowed" else "not allowed",
+                color = if (exactOn) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
+            OutlinedButton(onClick = {
+                runCatching {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    )
+                }
+            }) { Text("Notification settings") }
         }
         DayflowCard {
             Text("Offline data", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
@@ -132,5 +156,9 @@ fun SettingsScreen(onBack: () -> Unit) {
             }
         }
         PlaceholderNote("Backups are stored wherever you choose. Keep a copy somewhere safe.")
+        val version = remember {
+            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
+        }
+        PlaceholderNote("DAYFLOW $version · All data stays on this device. No account, ads or tracking.")
     }
 }

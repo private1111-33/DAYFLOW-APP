@@ -4,7 +4,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,24 +19,33 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.dayflow.app.data.AlarmScheduler
 import com.dayflow.app.data.AlarmStore
 import com.dayflow.app.data.LocalStore
 import com.dayflow.app.ui.theme.*
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
+fun HomeScreen(
+    onOpenProgress: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenPlanner: () -> Unit,
+    onOpenAlarms: () -> Unit,
+    onOpenVocabulary: () -> Unit
+) {
     val context = LocalContext.current
-    val tasks = remember { LocalStore.tasks(context) }
+    val today = LocalDate.now().toEpochDay()
+    val tasks = remember { LocalStore.tasks(context).filter { it.date == today } }
     val words = remember { LocalStore.words(context) }
     val alarms = remember { AlarmStore.all(context).filter { it.enabled } }
     val completed = tasks.count { it.done }
     val pending = tasks.filter { !it.done }.sortedBy { it.time }
     val learned = words.count { it.learned }
     val percent = if (tasks.isEmpty()) 0 else completed * 100 / tasks.size
-    val nextAlarm = alarms.sortedWith(compareBy({ it.hour }, { it.minute })).firstOrNull()
+    val nextAlarm = alarms.minByOrNull { AlarmScheduler.minutesUntil(it) }
     val greeting = when (java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) {
         in 5..11 -> "Good Morning,"
         in 12..17 -> "Good Afternoon,"
@@ -42,6 +56,7 @@ fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
             Box(Modifier.size(48.dp).clip(CircleShape), contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.TaskAlt, null, tint = BurgundyLight, modifier = Modifier.size(42.dp))
             }
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text("DAYFLOW", color = TextPrimary, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text("Your Personal Daily System", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
@@ -55,7 +70,7 @@ fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
             }
             Text(SimpleDateFormat("EEE, MMM d", Locale.ENGLISH).format(Date()), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         }
-        DayflowCard {
+        DayflowCard(onClick = onOpenProgress) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(116.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(
@@ -79,7 +94,7 @@ fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
                 }
             }
         }
-        DayflowCard {
+        DayflowCard(onClick = onOpenAlarms) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Alarm, null, tint = BurgundyLight, modifier = Modifier.size(34.dp))
                 Spacer(Modifier.width(14.dp))
@@ -92,7 +107,7 @@ fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
                 Icon(Icons.Default.ChevronRight, null, tint = TextSecondary)
             }
         }
-        DayflowCard {
+        DayflowCard(onClick = onOpenVocabulary) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.MenuBook, null, tint = BurgundyLight, modifier = Modifier.size(34.dp))
                 Spacer(Modifier.width(14.dp))
@@ -104,18 +119,19 @@ fun HomeScreen(onOpenProgress: () -> Unit, onOpenSettings: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(), color = BurgundyLight, trackColor = SurfaceElevated
                     )
                 }
+                Spacer(Modifier.width(10.dp))
                 Text(if (words.isEmpty()) "0%" else "${learned * 100 / words.size}%", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Upcoming Tasks", color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            TextButton(onClick = onOpenProgress) { Text("See All →", color = BurgundyLight) }
+            TextButton(onClick = onOpenPlanner) { Text("See All →", color = BurgundyLight) }
         }
         if (pending.isEmpty()) {
             DayflowCard { Text("No pending tasks. Your schedule is clear.", color = TextSecondary) }
         } else {
             pending.take(3).forEach { task ->
-                DayflowCard {
+                DayflowCard(onClick = onOpenPlanner) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.RadioButtonUnchecked, null, tint = BurgundyLight)
                         Spacer(Modifier.width(12.dp))

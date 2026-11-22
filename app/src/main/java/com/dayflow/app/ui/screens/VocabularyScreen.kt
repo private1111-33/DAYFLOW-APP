@@ -1,5 +1,6 @@
 package com.dayflow.app.ui.screens
 
+import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.dayflow.app.data.LocalStore
 import com.dayflow.app.data.WordEntry
 import com.dayflow.app.ui.theme.*
+import java.util.Locale
 
 @Composable
 fun VocabularyScreen() {
@@ -29,13 +31,30 @@ fun VocabularyScreen() {
     var meaning by remember { mutableStateOf("") }
     var example by remember { mutableStateOf("") }
     var reveal by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<WordEntry?>(null) }
     var index by remember { mutableIntStateOf(0) }
     val learned = words.count { it.learned }
     val due = words.filter { !it.learned }
-    val current = due.getOrNull(index.coerceIn(0, (due.size - 1).coerceAtLeast(0)))
+    val safeIndex = if (due.isEmpty()) 0 else index.coerceIn(0, due.lastIndex)
+    val current = due.getOrNull(safeIndex)
+
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+    DisposableEffect(Unit) {
+        var engine: TextToSpeech? = null
+        engine = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) engine?.setLanguage(Locale.US)
+        }
+        tts = engine
+        onDispose {
+            engine?.stop()
+            engine?.shutdown()
+            tts = null
+        }
+    }
 
     fun save() = LocalStore.saveWords(context, words.toList())
-    fun advance() { reveal = false; index = if (due.isEmpty()) 0 else (index + 1) % due.size }
+    // Used by "Hard": move on to the next word that is still being reviewed.
+    fun advance() { reveal = false; index = if (due.size <= 1) 0 else (safeIndex + 1) % due.size }
 
     ScreenColumn {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -76,11 +95,16 @@ fun VocabularyScreen() {
         } else {
             DayflowCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Text("WORD ${index + 1} OF ${due.size}", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    Text("WORD ${safeIndex + 1} OF ${due.size}", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
                 }
                 Spacer(Modifier.height(14.dp))
-                Text(current.word, color = TextPrimary, style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    Text(current.word, color = TextPrimary, style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                    IconButton(onClick = { tts?.speak(current.word, TextToSpeech.QUEUE_FLUSH, null, "dayflow_word") }) {
+                        Icon(Icons.Default.VolumeUp, "Pronounce", tint = BurgundyLight)
+                    }
+                }
                 if (reveal) {
                     Text(current.meaning, color = BurgundyLight, style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
@@ -103,7 +127,9 @@ fun VocabularyScreen() {
                     onClick = {
                         val i = words.indexOfFirst { it.id == current.id }
                         if (i >= 0) words[i] = current.copy(learned = true)
-                        save(); advance()
+                        // The learned word leaves the review list, so the next one slides into this slot.
+                        reveal = false
+                        save()
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Burgundy),
@@ -138,9 +164,9 @@ fun VocabularyScreen() {
                     }
                     Text(if (entry.learned) "Learned" else "Review", color = if (entry.learned) Success else BurgundyLight,
                         style = MaterialTheme.typography.labelSmall)
-                    IconButton(onClick = {
-                        words.removeAll { it.id == entry.id }; save(); index = 0
-                    }) { Icon(Icons.Default.Delete, "Delete word", tint = TextSecondary) }
+                    IconButton(onClick = { pendingDelete = entry }) {
+                        Icon(Icons.Default.Delete, "Delete word", tint = TextSecondary)
+                    }
                 }
             }
         }
@@ -166,6 +192,20 @@ fun VocabularyScreen() {
                 }) { Text("Save", color = BurgundyLight) }
             },
             dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } }
+        )
+    }
+
+    pendingDelete?.let { entry ->
+        ConfirmDialog(
+            title = "Delete word?",
+            message = "${entry.word} — ${entry.meaning}",
+            onConfirm = {
+                words.removeAll { it.id == entry.id }
+                save()
+                index = 0
+                pendingDelete = null
+            },
+            onDismiss = { pendingDelete = null }
         )
     }
 }

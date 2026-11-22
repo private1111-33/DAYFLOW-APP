@@ -1,0 +1,5 @@
+<resources>
+    <color name="dayflow_background">#090809</color>
+    <color name="dayflow_surface">#171416</color>
+    <color name="dayflow_accent">#D12D5B</color>
+</resources>

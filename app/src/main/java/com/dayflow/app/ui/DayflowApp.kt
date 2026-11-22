@@ -2,7 +2,11 @@ package com.dayflow.app.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -20,16 +24,25 @@ private data class NavItem(val route: String, val label: String, val icon: Image
 @Composable
 fun DayflowApp() {
     val navController = rememberNavController()
+    // Five main sections. Progress and Settings are secondary screens reached from Home.
     val items = listOf(
         NavItem("home", "Home", Icons.Filled.Home),
         NavItem("planner", "Planner", Icons.Filled.CalendarMonth),
         NavItem("alarms", "Alarms", Icons.Filled.Alarm),
         NavItem("vocabulary", "Vocabulary", Icons.Filled.MenuBook),
-        NavItem("music", "Music", Icons.Filled.MusicNote),
-        NavItem("progress", "Progress", Icons.Filled.BarChart)
+        NavItem("music", "Music", Icons.Filled.MusicNote)
     )
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
+
+    fun openTab(target: String) {
+        navController.navigate(target) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     Scaffold(
         containerColor = Background,
         bottomBar = {
@@ -37,13 +50,7 @@ fun DayflowApp() {
                 items.forEach { item ->
                     NavigationBarItem(
                         selected = route == item.route,
-                        onClick = {
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                        onClick = { openTab(item.route) },
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label, maxLines = 1, style = MaterialTheme.typography.labelSmall) },
                         colors = NavigationBarItemDefaults.colors(
@@ -59,10 +66,15 @@ fun DayflowApp() {
         }
     ) { padding ->
         NavHost(navController, startDestination = "home", modifier = Modifier.padding(padding)) {
-            composable("home") { HomeScreen(
-                onOpenProgress = { navController.navigate("progress") },
-                onOpenSettings = { navController.navigate("settings") }
-            ) }
+            composable("home") {
+                HomeScreen(
+                    onOpenProgress = { navController.navigate("progress") { launchSingleTop = true } },
+                    onOpenSettings = { navController.navigate("settings") { launchSingleTop = true } },
+                    onOpenPlanner = { openTab("planner") },
+                    onOpenAlarms = { openTab("alarms") },
+                    onOpenVocabulary = { openTab("vocabulary") }
+                )
+            }
             composable("planner") { PlannerScreen() }
             composable("alarms") { AlarmsScreen() }
             composable("vocabulary") { VocabularyScreen() }

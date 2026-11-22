@@ -29,15 +29,17 @@ fun SectionTitle(title: String, subtitle: String? = null) {
 }
 
 @Composable
-fun DayflowCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface),
-        content = {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
-        }
-    )
+fun DayflowCard(onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    val shape = RoundedCornerShape(18.dp)
+    val colors = CardDefaults.cardColors(containerColor = Surface)
+    val inner: @Composable ColumnScope.() -> Unit = {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+    }
+    if (onClick != null) {
+        Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = shape, colors = colors, content = inner)
+    } else {
+        Card(modifier = Modifier.fillMaxWidth(), shape = shape, colors = colors, content = inner)
+    }
 }
 
 @Composable
@@ -52,4 +54,21 @@ fun AccentButton(text: String, onClick: () -> Unit) {
 @Composable
 fun PlaceholderNote(text: String) {
     Text(text, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+}
+
+@Composable
+fun ConfirmDialog(
+    title: String,
+    message: String,
+    confirmLabel: String = "Delete",
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(message, color = TextSecondary) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel, color = BurgundyLight) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
