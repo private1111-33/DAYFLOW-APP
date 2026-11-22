@@ -5,12 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,13 +16,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.dayflow.app.data.DayTask
 import com.dayflow.app.data.LocalStore
 import com.dayflow.app.ui.theme.*
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -33,166 +28,87 @@ import java.util.Locale
 fun PlannerScreen() {
     val context = LocalContext.current
     val tasks = remember { mutableStateListOf<DayTask>().apply { addAll(LocalStore.tasks(context)) } }
-    var month by remember { mutableStateOf(YearMonth.now()) }
     var selected by remember { mutableStateOf(LocalDate.now()) }
     var showAdd by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
-    var pendingDelete by remember { mutableStateOf<DayTask?>(null) }
     var editingTask by remember { mutableStateOf<DayTask?>(null) }
-
+    var pendingDelete by remember { mutableStateOf<DayTask?>(null) }
+    var filter by remember { mutableStateOf("All") }
     val selectedEpoch = selected.toEpochDay()
     val dayTasks = tasks.filter { it.date == selectedEpoch }
     val done = dayTasks.count { it.done }
-    val datesWithTasks = tasks.map { it.date }.toSet()
-    val firstDayOffset = month.atDay(1).dayOfWeek.value % 7
-    val days = month.lengthOfMonth()
-    val weeks = (firstDayOffset + days + 6) / 7
+    val visibleTasks = dayTasks.filter { when(filter) { "Pending" -> !it.done; "Completed" -> it.done; else -> true } }
+    val today = LocalDate.now()
 
     ScreenColumn {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)),
-                color = TextPrimary, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-            Row {
-                IconButton(onClick = { month = month.minusMonths(1) }) { Icon(Icons.Default.ChevronLeft, "Previous month", tint = TextPrimary) }
-                IconButton(onClick = { month = month.plusMonths(1) }) { Icon(Icons.Default.ChevronRight, "Next month", tint = TextPrimary) }
-                TextButton(onClick = { month = YearMonth.now(); selected = LocalDate.now() }) { Text("Today") }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Tasks", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text(selected.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.ENGLISH)), color = TextSecondary)
             }
+            IconButton(onClick = { filter = "All" }) { Icon(Icons.Rounded.Search, "Search tasks", tint = Burgundy) }
         }
-        DayflowCard {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach {
-                    Text(it, color = TextSecondary, style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                }
-            }
-            for (week in 0 until weeks) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                    for (weekday in 0 until 7) {
-                        val day = week * 7 + weekday - firstDayOffset + 1
-                        if (day in 1..days) {
-                            val date = month.atDay(day)
-                            val active = date == selected
-                            val isToday = date == LocalDate.now()
-                            Box(Modifier.weight(1f).padding(vertical = 3.dp), contentAlignment = Alignment.Center) {
-                                Box(
-                                    Modifier.size(38.dp).clip(CircleShape)
-                                        .background(when {
-                                            active -> Burgundy
-                                            isToday -> SurfaceElevated
-                                            else -> Color.Transparent
-                                        })
-                                        .clickable { selected = date },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(day.toString(), color = TextPrimary,
-                                        fontWeight = if (isToday || active) FontWeight.Bold else FontWeight.Normal)
-                                    if (date.toEpochDay() in datesWithTasks) {
-                                        Box(
-                                            Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp)
-                                                .size(4.dp).clip(CircleShape).background(if (active) TextPrimary else BurgundyLight)
-                                        )
-                                    }
-                                }
-                            }
-                        } else {
-                            Spacer(Modifier.weight(1f).height(44.dp))
-                        }
+        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = Burgundy), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.CheckCircle, null, tint = Color.White, modifier = Modifier.size(34.dp))
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("$done / ${dayTasks.size}", color = Color.White, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                        Text("Tasks Completed", color = Color.White.copy(alpha = .85f))
+                    }
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(progress = { if(dayTasks.isEmpty()) 0f else done.toFloat()/dayTasks.size }, color = Color.White, trackColor = Color.White.copy(alpha=.22f), strokeWidth = 6.dp, modifier = Modifier.size(54.dp))
+                        Text("${if(dayTasks.isEmpty()) 0 else done*100/dayTasks.size}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
         }
+        Button(onClick = { editingTask = null; title = ""; time = ""; showAdd = true }, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(18.dp), colors = ButtonDefaults.buttonColors(containerColor = Burgundy)) {
+            Icon(Icons.Rounded.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Task", fontWeight = FontWeight.SemiBold)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("All", "Pending", "Completed").forEach { item ->
+                FilterChip(selected = filter == item, onClick = { filter = item }, label = { Text(item) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Burgundy, selectedLabelColor = Color.White))
+            }
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text(selected.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH)),
-                    color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Text("Daily schedule", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            }
-            TextButton(onClick = { showAdd = true }) {
-                Icon(Icons.Default.Add, null, tint = BurgundyLight)
-                Text("Add task", color = BurgundyLight)
+            Text("Select day", color = TextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { selected = selected.minusDays(1) }) { Icon(Icons.Rounded.ChevronLeft, null) }
+                Text(if(selected == today) "Today" else selected.format(DateTimeFormatter.ofPattern("MMM d")), color = Burgundy, fontWeight = FontWeight.SemiBold)
+                IconButton(onClick = { selected = selected.plusDays(1) }) { Icon(Icons.Rounded.ChevronRight, null) }
             }
         }
-        DayflowCard {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Progress", color = TextPrimary)
-                Text("$done / ${dayTasks.size}", color = BurgundyLight)
-            }
-            LinearProgressIndicator(
-                progress = { if (dayTasks.isEmpty()) 0f else done.toFloat() / dayTasks.size },
-                modifier = Modifier.fillMaxWidth(), color = BurgundyLight, trackColor = SurfaceElevated
-            )
-        }
-        if (dayTasks.isEmpty()) {
+        if (visibleTasks.isEmpty()) {
             DayflowCard {
-                Text("Nothing planned yet", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
-                Text("Add a task to build this day's schedule.", color = TextSecondary)
+                Icon(Icons.Rounded.AssignmentTurnedIn, null, tint = Burgundy, modifier = Modifier.size(34.dp))
+                Text(if(dayTasks.isEmpty()) "Nothing planned yet" else "No tasks here", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text("Add a task to organize your day.", color = TextSecondary)
             }
-        } else {
-            dayTasks.sortedWith(compareBy<DayTask> { it.done }.thenBy { it.time }).forEach { task ->
-                DayflowCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = task.done, onCheckedChange = { checked ->
-                            val i = tasks.indexOfFirst { it.id == task.id }
-                            if (i >= 0) tasks[i] = task.copy(done = checked)
-                            LocalStore.saveTasks(context, tasks.toList())
-                        }, colors = CheckboxDefaults.colors(checkedColor = BurgundyLight))
-                        Column(Modifier.weight(1f)) {
-                            Text(task.time.ifBlank { "Any time" }, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-                            Text(task.title, color = if (task.done) TextSecondary else TextPrimary)
-                        }
-                        IconButton(onClick = { editingTask = task; title = task.title; time = task.time; showAdd = true }) {
-                            Icon(Icons.Default.Edit, "Edit task", tint = BurgundyLight)
-                        }
-                        IconButton(onClick = { pendingDelete = task }) {
-                            Icon(Icons.Default.Delete, "Delete task", tint = TextSecondary)
-                        }
+        } else visibleTasks.sortedWith(compareBy<DayTask>{it.done}.thenBy{it.time}).forEach { task ->
+            DayflowCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = task.done, onCheckedChange = { checked ->
+                        val i = tasks.indexOfFirst { it.id == task.id }; if(i >= 0) tasks[i] = task.copy(done = checked)
+                        LocalStore.saveTasks(context, tasks.toList())
+                    }, colors = CheckboxDefaults.colors(checkedColor = Burgundy))
+                    Column(Modifier.weight(1f)) {
+                        Text(task.title, color = if(task.done) TextSecondary else TextPrimary, fontWeight = FontWeight.SemiBold)
+                        Text(task.time.ifBlank { "Any time" }, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
                     }
+                    IconButton(onClick = { editingTask = task; title = task.title; time = task.time; showAdd = true }) { Icon(Icons.Rounded.Edit, "Edit", tint = Burgundy) }
+                    IconButton(onClick = { pendingDelete = task }) { Icon(Icons.Rounded.DeleteOutline, "Delete", tint = TextSecondary) }
                 }
             }
         }
     }
-
-    if (showAdd) {
-        AlertDialog(
-            onDismissRequest = { showAdd = false },
-            title = { Text(if (editingTask == null) "New task" else "Edit task") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Task name") }, singleLine = true)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = {
-                            TimePickerDialog(context, { _, h, m -> time = String.format(Locale.ENGLISH, "%02d:%02d", h, m) }, 9, 0, false).show()
-                        }, modifier = Modifier.weight(1f)) { Text(time.ifBlank { "Pick time (optional)" }) }
-                        if (time.isNotBlank()) TextButton(onClick = { time = "" }) { Text("Clear") }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (title.isNotBlank()) {
-                        val old = editingTask
-                        if (old == null) tasks.add(DayTask(System.currentTimeMillis(), title.trim(), time.trim(), false, selectedEpoch))
-                        else { val i = tasks.indexOfFirst { it.id == old.id }; if (i >= 0) tasks[i] = old.copy(title = title.trim(), time = time.trim()) }
-                        LocalStore.saveTasks(context, tasks.toList())
-                        title = ""; time = ""; editingTask = null; showAdd = false
-                    }
-                }) { Text("Save", color = BurgundyLight) }
-            },
-            dismissButton = { TextButton(onClick = { showAdd = false; editingTask = null; title = ""; time = "" }) { Text("Cancel") } }
-        )
-    }
-
-    pendingDelete?.let { task ->
-        ConfirmDialog(
-            title = "Delete task?",
-            message = task.title,
-            onConfirm = {
-                tasks.removeAll { it.id == task.id }
-                LocalStore.saveTasks(context, tasks.toList())
-                pendingDelete = null
-            },
-            onDismiss = { pendingDelete = null }
-        )
-    }
+    if(showAdd) AlertDialog(onDismissRequest = { showAdd = false }, title = { Text(if(editingTask == null) "New task" else "Edit task") }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Task name") }, singleLine = true)
+            OutlinedButton(onClick = { TimePickerDialog(context, { _, h, m -> time = String.format(Locale.ENGLISH,"%02d:%02d",h,m) },9,0,false).show() }, modifier = Modifier.fillMaxWidth()) { Text(time.ifBlank { "Choose time (optional)" }) }
+        }
+    }, confirmButton = { TextButton(onClick = { if(title.isNotBlank()) { val old=editingTask; if(old==null) tasks.add(DayTask(System.currentTimeMillis(),title.trim(),time.trim(),false,selectedEpoch)) else { val i=tasks.indexOfFirst{it.id==old.id}; if(i>=0) tasks[i]=old.copy(title=title.trim(),time=time.trim()) }; LocalStore.saveTasks(context,tasks.toList()); showAdd=false; title=""; time=""; editingTask=null } }) { Text("Save",color=Burgundy) } }, dismissButton = { TextButton(onClick = { showAdd=false; editingTask=null }) { Text("Cancel") } })
+    pendingDelete?.let { task -> ConfirmDialog(title="Delete task?",message=task.title,onConfirm={tasks.removeAll{it.id==task.id};LocalStore.saveTasks(context,tasks.toList());pendingDelete=null},onDismiss={pendingDelete=null}) }
 }
