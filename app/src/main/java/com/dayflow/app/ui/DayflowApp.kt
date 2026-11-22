@@ -28,12 +28,11 @@ private data class NavItem(val route: String, val label: String, val icon: Image
 @Composable
 fun DayflowApp() {
     val navController = rememberNavController()
-    // Five main sections. Progress and Settings are secondary screens reached from Home.
     val items = listOf(
         NavItem("home", "Home", Icons.Filled.Home),
-        NavItem("planner", "Planner", Icons.Filled.CalendarMonth),
-        NavItem("alarms", "Alarms", Icons.Filled.Alarm),
-        NavItem("vocabulary", "Vocabulary", Icons.Filled.MenuBook),
+        NavItem("planner", "Tasks", Icons.Filled.CalendarMonth),
+        NavItem("alarms", "Alarm", Icons.Filled.Alarm),
+        NavItem("vocabulary", "Words", Icons.Filled.MenuBook),
         NavItem("music", "Music", Icons.Filled.MusicNote)
     )
     val entry by navController.currentBackStackEntryAsState()
@@ -80,7 +79,8 @@ fun DayflowApp() {
                     onOpenSettings = { navController.navigate("settings") { launchSingleTop = true } },
                     onOpenPlanner = { openTab("planner") },
                     onOpenAlarms = { openTab("alarms") },
-                    onOpenVocabulary = { openTab("vocabulary") }
+                    onOpenVocabulary = { openTab("vocabulary") },
+                    onOpenMusic = { openTab("music") }
                 )
             }
             composable("planner") { PlannerScreen() }
