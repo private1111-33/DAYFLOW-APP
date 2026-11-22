@@ -4,8 +4,9 @@ import android.content.ComponentName
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -326,16 +327,17 @@ fun MusicScreen() {
         } else {
             tracks.withIndex()
                 .groupBy { (_, track) ->
-                    trackMetadata[track.uri]?.artist
-                        ?.trim()
+                    val detectedArtist = trackMetadata[track.uri]?.artist
                         ?.takeIf { it.isNotBlank() && !it.equals("Unknown artist", ignoreCase = true) }
-                        ?.lowercase()
+                        ?: inferredArtistFromFileName(track.name)
+                    detectedArtist?.trim()?.replace(Regex("\\s+"), " ")?.lowercase()
                         ?: "__unknown_artist__"
                 }
-                .forEach { (artistKey, artistTracks) ->
+                .forEach { (_, artistTracks) ->
                     val artistLabel = artistTracks.firstOrNull()?.value?.let { track ->
                         trackMetadata[track.uri]?.artist
                             ?.takeIf { it.isNotBlank() && !it.equals("Unknown artist", ignoreCase = true) }
+                            ?: inferredArtistFromFileName(track.name)
                     } ?: "Unknown artist"
                     Text(
                         artistLabel,
@@ -378,20 +380,19 @@ fun MusicScreen() {
 
 @Composable
 private fun VinylDisc(modifier: Modifier = Modifier, isPlaying: Boolean) {
-    val transition = rememberInfiniteTransition(label = "vinyl")
-    val rotation by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(5000, easing = androidx.compose.animation.core.LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
-        ),
-        label = "vinylRotation"
-    )
-    val angle = if (isPlaying) rotation else 0f
+    val rotation = remember { Animatable(0f) }
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                rotation.animateTo(
+                    targetValue = rotation.value + 360f,
+                    animationSpec = tween(durationMillis = 5000, easing = LinearEasing)
+                )
+            }
+        }
+    }
     Box(modifier, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(226.dp).rotate(angle)) {
-            val center = this.center
+        Canvas(Modifier.size(226.dp).rotate(rotation.value)) {
             val radius = size.minDimension / 2f
             drawCircle(Color(0xFF171216), radius = radius)
             for (fraction in listOf(.25f, .34f, .43f, .52f, .61f, .70f, .79f, .88f)) {
@@ -459,4 +460,14 @@ private fun LyricsPanel(
             }
         }
     }
+}
+
+
+private fun inferredArtistFromFileName(fileName: String): String? {
+    val baseName = fileName.substringBeforeLast('.', fileName).trim()
+    val separators = listOf(" - ", " – ", " — ", " _ ")
+    val separator = separators.firstOrNull { baseName.contains(it) } ?: return null
+    val artist = baseName.substringBefore(separator).trim()
+    val title = baseName.substringAfter(separator).trim()
+    return artist.takeIf { it.length >= 2 && title.isNotBlank() }
 }
