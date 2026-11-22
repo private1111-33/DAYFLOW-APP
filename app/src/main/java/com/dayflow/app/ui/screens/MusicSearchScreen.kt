@@ -142,6 +142,13 @@ fun MusicSearchScreen() {
         }
     }
 
+    LaunchedEffect(selected?.id) {
+        val track = selected ?: return@LaunchedEffect
+        lyricsLoading = true
+        lyrics = runCatching { MusicDiscoveryApi.lyrics(track) }.getOrNull()
+        lyricsLoading = false
+    }
+
     fun search() {
         if (query.isBlank()) return
         loading = true
