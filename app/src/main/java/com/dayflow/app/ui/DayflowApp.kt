@@ -99,7 +99,7 @@ fun DayflowApp() {
             composable("music") { MusicScreen() }
             composable("private-room") { PrivateRoomScreen(onBack = { navController.popBackStack() }) }
             composable("progress") { ProgressScreen(onBack = { openTab("home") }) }
-            composable("settings") { SettingsScreen(onBack = { openTab("home") }, onOpenMusic = { navController.navigate("music") }) }
+            composable("settings") { SettingsScreen(onBack = { openTab("home") }, onOpenMusic = { navController.navigate("music") }, onOpenPrivateRoom = { navController.navigate("private-room") }) }
         }
     }
 }
