@@ -64,23 +64,27 @@ private object MusicDiscoveryApi {
 
     suspend fun search(query: String): List<FoundTrack> = withContext(Dispatchers.IO) {
         val encoded = URLEncoder.encode(query, "UTF-8")
-        val json = JSONObject(get("https://itunes.apple.com/search?term=$encoded&entity=song&limit=30"))
-        val results = json.optJSONArray("results") ?: return@withContext emptyList()
-        (0 until results.length()).mapNotNull { i ->
+        val json = JSONObject(get("https://itunes.apple.com/search?term=" + encoded + "&entity=song&limit=30"))
+        val results = json.optJSONArray("results") ?: org.json.JSONArray()
+        val catalog = (0 until results.length()).mapNotNull { i ->
             val item = results.optJSONObject(i) ?: return@mapNotNull null
-            val preview = item.optString("previewUrl")
-            if (preview.isBlank() || preview == "null") return@mapNotNull null
-            FoundTrack(
-                id = item.optLong("trackId"),
-                title = item.optString("trackName", "Unknown track"),
-                artist = item.optString("artistName", "Unknown artist"),
-                artwork = item.optString("artworkUrl100").replace("100x100", "600x600"),
-                preview = preview,
-                durationMs = item.optLong("trackTimeMillis")
-            )
+            val preview = item.optString("previewUrl").takeUnless { it.isBlank() || it == "null" } ?: ""
+            FoundTrack(item.optLong("trackId"), item.optString("trackName", "Unknown track"), item.optString("artistName", "Unknown artist"), item.optString("artworkUrl100").replace("100x100", "600x600"), preview, item.optLong("trackTimeMillis"))
         }
+        val lyricMatches = runCatching {
+            val array = org.json.JSONArray(get("https://lrclib.net/api/search?q=" + encoded))
+            (0 until array.length()).mapNotNull { i ->
+                val item = array.optJSONObject(i) ?: return@mapNotNull null
+                val title = item.optString("trackName")
+                val artist = item.optString("artistName")
+                if (title.isBlank() || artist.isBlank()) return@mapNotNull null
+                val synced = item.optString("syncedLyrics").takeUnless { it == "null" } ?: ""
+                val plain = item.optString("plainLyrics").takeUnless { it == "null" } ?: ""
+                FoundTrack(-item.optLong("id"), title, artist, "", "", (item.optDouble("duration") * 1000).toLong(), if (synced.isNotBlank()) synced else plain, synced.isNotBlank())
+            }
+        }.getOrDefault(emptyList())
+        (catalog + lyricMatches).distinctBy { it.title.lowercase() + "|" + it.artist.lowercase() }.take(40)
     }
-
     suspend fun lyrics(track: FoundTrack): LyricsData? = withContext(Dispatchers.IO) {
         val name = URLEncoder.encode(track.title, "UTF-8")
         val artist = URLEncoder.encode(track.artist, "UTF-8")
