@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,7 +35,8 @@ fun DayflowApp() {
         NavItem("planner", "Tasks", Icons.Filled.TaskAlt),
         NavItem("alarms", "Alarm", Icons.Filled.Alarm),
         NavItem("vocabulary", "Words", Icons.Filled.MenuBook),
-        NavItem("music", "Music", Icons.Filled.MusicNote)
+        NavItem("music", "Music", Icons.Filled.MusicNote),
+        NavItem("discover", "Discover", Icons.Filled.Search)
     )
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -88,6 +90,7 @@ fun DayflowApp() {
             composable("alarms") { AlarmsScreen() }
             composable("vocabulary") { VocabularyScreen() }
             composable("music") { MusicScreen() }
+            composable("discover") { MusicSearchScreen() }
             composable("progress") { ProgressScreen(onBack = { navController.popBackStack() }) }
             composable("settings") { SettingsScreen(onBack = { navController.popBackStack() }) }
         }
