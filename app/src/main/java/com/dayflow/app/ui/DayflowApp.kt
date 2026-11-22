@@ -14,10 +14,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import com.dayflow.app.ui.screens.*
-import com.dayflow.app.ui.theme.MaterialTheme.colorScheme.background
-import com.dayflow.app.ui.theme.MaterialTheme.colorScheme.surface
-import com.dayflow.app.ui.theme.MaterialTheme.colorScheme.primary
-import com.dayflow.app.ui.theme.MaterialTheme.colorScheme.onSurfaceVariant
 
 private data class NavItem(val route: String, val label: String, val icon: ImageVector)
 
