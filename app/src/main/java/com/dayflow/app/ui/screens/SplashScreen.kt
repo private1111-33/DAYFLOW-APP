@@ -16,19 +16,19 @@ import com.dayflow.app.ui.theme.*
 
 @Composable
 fun SplashScreen() {
-    Box(Modifier.fillMaxSize().background(Background)) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Box(
             Modifier.fillMaxWidth().fillMaxHeight(.43f).align(Alignment.BottomCenter)
-                .background(Burgundy, RoundedCornerShape(topStart = 180.dp, topEnd = 0.dp))
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(topStart = 180.dp, topEnd = 0.dp))
         )
         Column(
             Modifier.fillMaxWidth().align(Alignment.Center).padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(Icons.Default.MenuBook, null, tint = Burgundy, modifier = Modifier.size(112.dp))
-            Text("DAYFLOW", color = Burgundy, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-            Text("Learn  •  Practice  •  Grow", color = TextSecondary, style = MaterialTheme.typography.titleMedium)
+            Icon(Icons.Default.MenuBook, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(112.dp))
+            Text("DAYFLOW", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+            Text("Learn  •  Practice  •  Grow", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleMedium)
         }
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 54.dp),

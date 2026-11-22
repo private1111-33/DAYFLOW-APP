@@ -31,33 +31,33 @@ fun QuizScreen(onBack: () -> Unit) {
 
     ScreenColumn {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("‹ Back", color = Burgundy) }
+            TextButton(onClick = onBack) { Text("‹ Back", color = MaterialTheme.colorScheme.primary) }
             Spacer(Modifier.weight(1f))
-            Text(if (finished) "Quiz Results" else "Quiz", color = TextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(if (finished) "Quiz Results" else "Quiz", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            Text(if (questions.isEmpty()) "0 / 0" else "${(questionIndex + 1).coerceAtMost(questions.size)} / ${questions.size}", color = TextSecondary)
+            Text(if (questions.isEmpty()) "0 / 0" else "${(questionIndex + 1).coerceAtMost(questions.size)} / ${questions.size}", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (questions.isEmpty()) {
             DayflowCard {
-                Text("Add at least one vocabulary word with its meaning to start a quiz.", color = TextPrimary)
+                Text("Add at least one vocabulary word with its meaning to start a quiz.", color = MaterialTheme.colorScheme.onSurface)
                 AccentButton("Back to words", onBack)
             }
         } else if (finished) {
             DayflowCard {
-                Text("Your score", color = TextSecondary)
-                Text("$score / ${questions.size}", color = Burgundy, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
-                Text("Keep practicing to improve your accuracy.", color = TextSecondary)
+                Text("Your score", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("$score / ${questions.size}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
+                Text("Keep practicing to improve your accuracy.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 AccentButton("Try Again") { questionIndex = 0; selected = null; score = 0; finished = false }
             }
         } else if (current != null) {
             LinearProgressIndicator(
                 progress = { (questionIndex + 1).toFloat() / questions.size },
                 modifier = Modifier.fillMaxWidth().height(7.dp),
-                color = Burgundy, trackColor = SurfaceElevated
+                color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
             DayflowCard {
-                Text("What does this word mean?", color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                Text(current.word, color = Burgundy, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                Text("What does this word mean?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                Text(current.word, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             }
             choices.forEach { choice ->
                 val isSelected = selected == choice
@@ -67,16 +67,16 @@ fun QuizScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (isSelected && correct) SurfaceElevated else if (isSelected) MaterialTheme.colorScheme.errorContainer else Surface,
-                        contentColor = TextPrimary
+                        containerColor = if (isSelected && correct) MaterialTheme.colorScheme.surfaceVariant else if (isSelected) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     ),
                     border = androidx.compose.foundation.BorderStroke(
                         if (isSelected) 1.5.dp else 1.dp,
-                        if (isSelected && correct) Burgundy else Divider
+                        if (isSelected && correct) MaterialTheme.colorScheme.primary else Divider
                     )
                 ) {
                     Text(choice, modifier = Modifier.weight(1f))
-                    if (isSelected) Text(if (correct) "✓" else "×", color = Burgundy, fontWeight = FontWeight.Bold)
+                    if (isSelected) Text(if (correct) "✓" else "×", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(Modifier.weight(1f))
@@ -88,7 +88,7 @@ fun QuizScreen(onBack: () -> Unit) {
                 enabled = selected != null,
                 modifier = Modifier.fillMaxWidth().height(54.dp),
                 shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Burgundy)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) { Text(if (questionIndex == questions.lastIndex) "Finish Quiz" else "Next  ›") }
         }
     }

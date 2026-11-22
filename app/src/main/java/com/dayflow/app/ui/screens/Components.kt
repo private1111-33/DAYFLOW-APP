@@ -14,7 +14,7 @@ import com.dayflow.app.ui.theme.*
 @Composable
 fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().background(Background).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content
     )
@@ -23,15 +23,15 @@ fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 fun SectionTitle(title: String, subtitle: String? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+        Text(title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 fun DayflowCard(onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(18.dp)
-    val colors = CardDefaults.cardColors(containerColor = Surface)
+    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     val inner: @Composable ColumnScope.() -> Unit = {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
     }
@@ -46,14 +46,14 @@ fun DayflowCard(onClick: (() -> Unit)? = null, content: @Composable ColumnScope.
 fun AccentButton(text: String, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(containerColor = Burgundy),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         shape = RoundedCornerShape(12.dp)
     ) { Text(text) }
 }
 
 @Composable
 fun PlaceholderNote(text: String) {
-    Text(text, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+    Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
@@ -67,8 +67,8 @@ fun ConfirmDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
-        text = { Text(message, color = TextSecondary) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel, color = BurgundyLight) } },
+        text = { Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel, color = MaterialTheme.colorScheme.secondary) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
