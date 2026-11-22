@@ -20,7 +20,7 @@ data class AppUpdate(
 
 object UpdateManager {
     private const val LATEST_RELEASE_URL =
-        "https://api.github.com/repos/private1111-33/DAYFLOW-APP/releases/latest"
+        "https://api.github.com/repos/private1111-33/DAYFLOW-RELEASES/releases/latest"
     private const val APK_ASSET_NAME = "DAYFLOW.apk"
 
     suspend fun checkForUpdate(context: Context): AppUpdate? = withContext(Dispatchers.IO) {
