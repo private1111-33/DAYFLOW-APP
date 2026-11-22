@@ -86,7 +86,7 @@ fun DayflowApp() {
             composable("quiz") { QuizScreen(onBack = { openTab("home") }) }
             composable("music") { MusicScreen() }
             composable("progress") { ProgressScreen(onBack = { openTab("home") }) }
-            composable("settings") { SettingsScreen(onBack = { openTab("home") }) }
+            composable("settings") { SettingsScreen(onBack = { openTab("home") }, onOpenMusic = { navController.navigate("music") }) }
         }
     }
 }
