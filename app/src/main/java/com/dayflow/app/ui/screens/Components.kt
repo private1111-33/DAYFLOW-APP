@@ -17,15 +17,18 @@ import com.dayflow.app.ui.theme.*
 @Composable
 fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF09090B), Color(0xFF130910), Color(0xFF09090B)))).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF08080A), Color(0xFF160B12), Color(0xFF09090B))))
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
         content = content
     )
 }
 
 @Composable
 fun SectionTitle(title: String, subtitle: String? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(title, style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
         if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
     }
@@ -33,15 +36,20 @@ fun SectionTitle(title: String, subtitle: String? = null) {
 
 @Composable
 fun DayflowCard(onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
-    val shape = RoundedCornerShape(18.dp)
-    val colors = CardDefaults.cardColors(containerColor = Color(0xFF191619))
+    val shape = RoundedCornerShape(22.dp)
+    val colors = CardDefaults.cardColors(containerColor = Color(0xFF171317))
     val inner: @Composable ColumnScope.() -> Unit = {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+        Column(Modifier.padding(17.dp), verticalArrangement = Arrangement.spacedBy(11.dp), content = content)
     }
+    val modifier = Modifier.fillMaxWidth().border(
+        width = 1.dp,
+        brush = Brush.linearGradient(listOf(Color(0xFF653047), Color(0xFF30232B), Color(0xFF241B21))),
+        shape = shape
+    )
     if (onClick != null) {
-        Card(onClick = onClick, modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF2D2027), shape), shape = shape, colors = colors, content = inner)
+        Card(onClick = onClick, modifier = modifier, shape = shape, colors = colors, content = inner)
     } else {
-        Card(modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF33212A), shape), shape = shape, colors = colors, content = inner)
+        Card(modifier = modifier, shape = shape, colors = colors, content = inner)
     }
 }
 
@@ -50,8 +58,9 @@ fun AccentButton(text: String, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = Burgundy),
-        shape = RoundedCornerShape(14.dp)
-    ) { Text(text) }
+        shape = RoundedCornerShape(15.dp),
+        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 13.dp)
+    ) { Text(text, style = MaterialTheme.typography.labelLarge) }
 }
 
 @Composable
