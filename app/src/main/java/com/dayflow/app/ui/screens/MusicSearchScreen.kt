@@ -229,50 +229,10 @@ fun MusicSearchScreen() {
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (track.preview.isNotBlank()) OutlinedButton(onClick = {
-                        if (playingId == track.id) {
-                            runCatching { player?.pause() }
-                            playingId = null
-                        } else {
-                            runCatching { player?.release() }
-                            player = MediaPlayer().apply {
-                                setDataSource(track.preview)
-                                setOnCompletionListener { playingId = null }
-                                prepareAsync()
-                                setOnPreparedListener { it.start(); playingId = track.id }
-                            }
-                        }
-                    }) {
-                        Icon(if (playingId == track.id) Icons.Default.Pause else Icons.Default.PlayArrow, null)
-                        Spacer(Modifier.width(6.dp))
-                        Text(if (playingId == track.id) "Pause preview" else "Play preview")
-                    }
-                    Button(onClick = {
-                        lyricsLoading = true
-                        lyrics = null
-                        scope.launch {
-                            lyrics = runCatching { MusicDiscoveryApi.lyrics(track) }.getOrNull()
-                            lyricsLoading = false
-                        }
-                    }) { Text("Lyrics") }
-                    if (track.preview.isNotBlank()) OutlinedButton(onClick = {
-                        scope.launch {
-                            val file = File(context.filesDir, "music-previews/${track.id}.m4a")
-                            try {
-                                if (!file.exists()) MusicDiscoveryApi.downloadPreview(track, file)
-                                val current = MusicStore.load(context).toMutableList()
-                                val uri = Uri.fromFile(file).toString()
-                                if (current.none { it.uri == uri }) {
-                                    current.add(MusicTrack(uri, "${track.title} — ${track.artist} (Preview)"))
-                                    MusicStore.save(context, current)
-                                }
-                                savedIds = savedIds + track.id
-                            } catch (_: Exception) { error = "Could not save this preview." }
-                        }
-                    }) {
+                    OutlinedButton(onClick = { error = "This catalog provides a preview only. A full download is available only when the rights-holder explicitly permits it." }) {
                         Icon(Icons.Default.Download, null)
                         Spacer(Modifier.width(4.dp))
-                        Text(if (track.id in savedIds) "Saved" else "Save preview")
+                        Text("Full download unavailable")
                     }
                 }
                 if (lyricsLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
