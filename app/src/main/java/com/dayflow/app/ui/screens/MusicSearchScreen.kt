@@ -63,16 +63,40 @@ private object MusicDiscoveryApi {
     }
 
     suspend fun search(query: String): List<FoundTrack> = withContext(Dispatchers.IO) {
-        val encoded = URLEncoder.encode(query, "UTF-8")
-        val json = JSONObject(get("https://itunes.apple.com/search?term=" + encoded + "&entity=song&limit=30"))
-        val results = json.optJSONArray("results") ?: org.json.JSONArray()
-        val catalog = (0 until results.length()).mapNotNull { i ->
-            val item = results.optJSONObject(i) ?: return@mapNotNull null
-            val preview = item.optString("previewUrl").takeUnless { it.isBlank() || it == "null" } ?: ""
-            FoundTrack(item.optLong("trackId"), item.optString("trackName", "Unknown track"), item.optString("artistName", "Unknown artist"), item.optString("artworkUrl100").replace("100x100", "600x600"), preview, item.optLong("trackTimeMillis"))
-        }
+        val encoded = URLEncoder.encode(query.trim(), "UTF-8")
+        val catalog = runCatching {
+            val json = JSONObject(get("https://itunes.apple.com/search?term=$encoded&entity=song&limit=30"))
+            val results = json.optJSONArray("results") ?: org.json.JSONArray()
+            (0 until results.length()).mapNotNull { i ->
+                val item = results.optJSONObject(i) ?: return@mapNotNull null
+                val title = item.optString("trackName")
+                val artist = item.optString("artistName")
+                if (title.isBlank() || artist.isBlank()) return@mapNotNull null
+                val preview = item.optString("previewUrl").takeUnless { it.isBlank() || it == "null" } ?: ""
+                FoundTrack(item.optLong("trackId"), title, artist,
+                    item.optString("artworkUrl100").replace("100x100", "600x600"),
+                    preview, item.optLong("trackTimeMillis"))
+            }
+        }.getOrDefault(emptyList())
+
+        val deezer = runCatching {
+            val json = JSONObject(get("https://api.deezer.com/search?q=$encoded&limit=30"))
+            val results = json.optJSONArray("data") ?: org.json.JSONArray()
+            (0 until results.length()).mapNotNull { i ->
+                val item = results.optJSONObject(i) ?: return@mapNotNull null
+                val title = item.optString("title")
+                val artist = item.optJSONObject("artist")?.optString("name").orEmpty()
+                if (title.isBlank() || artist.isBlank()) return@mapNotNull null
+                val album = item.optJSONObject("album")
+                FoundTrack(item.optLong("id") + 1_000_000_000L, title, artist,
+                    album?.optString("cover_xl").orEmpty(),
+                    item.optString("preview").takeUnless { it == "null" } ?: "",
+                    item.optLong("duration") * 1000L)
+            }
+        }.getOrDefault(emptyList())
+
         val lyricMatches = runCatching {
-            val array = org.json.JSONArray(get("https://lrclib.net/api/search?q=" + encoded))
+            val array = org.json.JSONArray(get("https://lrclib.net/api/search?q=$encoded"))
             (0 until array.length()).mapNotNull { i ->
                 val item = array.optJSONObject(i) ?: return@mapNotNull null
                 val title = item.optString("trackName")
@@ -80,10 +104,15 @@ private object MusicDiscoveryApi {
                 if (title.isBlank() || artist.isBlank()) return@mapNotNull null
                 val synced = item.optString("syncedLyrics").takeUnless { it == "null" } ?: ""
                 val plain = item.optString("plainLyrics").takeUnless { it == "null" } ?: ""
-                FoundTrack(-item.optLong("id"), title, artist, "", "", (item.optDouble("duration") * 1000).toLong(), if (synced.isNotBlank()) synced else plain, synced.isNotBlank())
+                FoundTrack(-item.optLong("id"), title, artist, "", "",
+                    (item.optDouble("duration") * 1000).toLong(),
+                    if (synced.isNotBlank()) synced else plain, synced.isNotBlank())
             }
         }.getOrDefault(emptyList())
-        (catalog + lyricMatches).distinctBy { it.title.lowercase() + "|" + it.artist.lowercase() }.take(40)
+
+        (catalog + deezer + lyricMatches)
+            .distinctBy { it.title.trim().lowercase() + "|" + it.artist.trim().lowercase() }
+            .take(50)
     }
     suspend fun lyrics(track: FoundTrack): LyricsData? = withContext(Dispatchers.IO) {
         if (track.lyricsText.isNotBlank()) return@withContext LyricsData(track.lyricsText, track.hasSyncedLyrics)
@@ -150,15 +179,23 @@ fun MusicSearchScreen() {
     }
 
     fun search() {
-        if (query.isBlank()) return
+        val term = query.trim()
+        if (term.isBlank()) {
+            error = "Type a song title or artist name first."
+            results = emptyList()
+            return
+        }
         loading = true
         error = null
+        selected = null
+        lyrics = null
         scope.launch {
             try {
-                results = MusicDiscoveryApi.search(query.trim())
-                if (results.isEmpty()) error = "No tracks with playable previews were found."
-            } catch (e: Exception) { error = "Search failed. Check your internet connection." }
-            finally { loading = false }
+                results = MusicDiscoveryApi.search(term)
+                if (results.isEmpty()) error = "No matches found. Try another spelling or artist name."
+            } catch (e: Exception) {
+                error = "Search is temporarily unavailable. Check your connection and try again."
+            } finally { loading = false }
         }
     }
 
@@ -290,7 +327,7 @@ fun MusicSearchScreen() {
             }
         }
         Text(
-            "Previews are short samples supplied by the music catalog. Saving adds the sample to your DAYFLOW library; it does not download the full commercial song.",
+            "Preview clips are not full songs. Full-track downloads will only be enabled for tracks offered by a source with explicit download permission.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
