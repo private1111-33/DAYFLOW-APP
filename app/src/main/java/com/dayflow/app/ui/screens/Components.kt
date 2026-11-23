@@ -17,7 +17,7 @@ import com.dayflow.app.ui.theme.*
 @Composable
 fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Background, Color(0xFF12090E), Background))).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
+        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF09090B), Color(0xFF130910), Color(0xFF09090B)))).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content
     )
@@ -33,13 +33,13 @@ fun SectionTitle(title: String, subtitle: String? = null) {
 
 @Composable
 fun DayflowCard(onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
-    val shape = RoundedCornerShape(24.dp)
-    val colors = CardDefaults.cardColors(containerColor = Color(0xFF171417))
+    val shape = RoundedCornerShape(18.dp)
+    val colors = CardDefaults.cardColors(containerColor = Color(0xFF191619))
     val inner: @Composable ColumnScope.() -> Unit = {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
     }
     if (onClick != null) {
-        Card(onClick = onClick, modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF33212A), shape), shape = shape, colors = colors, content = inner)
+        Card(onClick = onClick, modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF2D2027), shape), shape = shape, colors = colors, content = inner)
     } else {
         Card(modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF33212A), shape), shape = shape, colors = colors, content = inner)
     }
@@ -50,7 +50,7 @@ fun AccentButton(text: String, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = Burgundy),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(14.dp)
     ) { Text(text) }
 }
 
