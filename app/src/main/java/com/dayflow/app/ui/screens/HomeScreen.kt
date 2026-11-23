@@ -70,6 +70,25 @@ fun HomeScreen(
             }
             Text(SimpleDateFormat("EEE, MMM d", Locale.ENGLISH).format(Date()), color = TextSecondary, style = MaterialTheme.typography.labelSmall)
         }
+        Text("QUICK ACTIONS", color = TextSecondary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            listOf(
+                Triple("Add task", Icons.Default.TaskAlt, onOpenPlanner),
+                Triple("Set alarm", Icons.Default.Alarm, onOpenAlarms),
+                Triple("Vocabulary", Icons.Default.MenuBook, onOpenVocabulary)
+            ).forEach { action ->
+                DayflowCard(onClick = action.third) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(Burgundy.copy(alpha = 0.38f)), contentAlignment = Alignment.Center) {
+                                Icon(action.second, null, tint = BurgundyLight)
+                            }
+                            Text(action.first, color = TextPrimary, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
         DayflowCard(onClick = onOpenProgress) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(116.dp), contentAlignment = Alignment.Center) {
