@@ -1,8 +1,12 @@
 package com.dayflow.app.ui.screens
 
+import android.app.DownloadManager
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,11 +59,17 @@ private data class LyricsData(val text: String, val synced: Boolean)
 private object MusicDiscoveryApi {
     private fun get(url: String): String {
         val connection = URL(url).openConnection() as HttpURLConnection
-        connection.connectTimeout = 12000
-        connection.readTimeout = 12000
-        connection.setRequestProperty("User-Agent", "DAYFLOW-Android/1.0 (music discovery)")
-        return try { connection.inputStream.bufferedReader().use { it.readText() } }
-        finally { connection.disconnect() }
+        connection.connectTimeout = 18000
+        connection.readTimeout = 18000
+        connection.setRequestProperty("User-Agent", "DAYFLOW-Android/1.0")
+        connection.setRequestProperty("Accept", "application/json")
+        return try {
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            if (code !in 200..299) throw IllegalStateException("Music service returned HTTP $code")
+            body
+        } finally { connection.disconnect() }
     }
 
     suspend fun search(query: String): List<FoundTrack> = withContext(Dispatchers.IO) {
@@ -194,7 +204,7 @@ fun MusicSearchScreen() {
                 results = MusicDiscoveryApi.search(term)
                 if (results.isEmpty()) error = "No matches found. Try another spelling or artist name."
             } catch (e: Exception) {
-                error = "Search is temporarily unavailable. Check your connection and try again."
+                error = "Could not reach the music catalogs. Check your internet connection, then try again."
             } finally { loading = false }
         }
     }
@@ -225,15 +235,34 @@ fun MusicSearchScreen() {
                     Column(Modifier.weight(1f)) {
                         Text(track.title, fontWeight = FontWeight.SemiBold, maxLines = 2)
                         Text(track.artist, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Preview • ${formatDuration(track.durationMs)}", style = MaterialTheme.typography.labelSmall)
+                        Text("Catalog preview • ${formatDuration(track.durationMs)}", style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = { error = "This catalog provides a preview only. A full download is available only when the rights-holder explicitly permits it." }) {
-                        Icon(Icons.Default.Download, null)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Full download unavailable")
+                    OutlinedButton(
+                    enabled = track.preview.isNotBlank(),
+                    onClick = {
+                        runCatching {
+                            val safeName = (track.artist + " - " + track.title)
+                                .replace(Regex("[^A-Za-z0-9 _-]"), "_")
+                                .take(90) + " - Preview.m4a"
+                            val request = DownloadManager.Request(Uri.parse(track.preview))
+                                .setTitle(track.title + " (preview)")
+                                .setDescription("Downloading the authorized preview clip")
+                                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                .setDestinationInExternalPublicDir(Environment.DIRECTORY_MUSIC, safeName)
+                            val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                            manager.enqueue(request)
+                            Toast.makeText(context, "Preview download started", Toast.LENGTH_SHORT).show()
+                        }.onFailure {
+                            error = "Could not start the preview download. Check your connection and storage."
+                        }
                     }
+                ) {
+                    Icon(Icons.Default.Download, null)
+                    Spacer(Modifier.width(4.dp))
+                    Text(if (track.preview.isBlank()) "No download available" else "Download preview")
+                }
                 }
                 if (lyricsLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 lyrics?.let { lyric ->
@@ -287,7 +316,7 @@ fun MusicSearchScreen() {
             }
         }
         Text(
-            "Preview clips are not full songs. Full-track downloads will only be enabled for tracks offered by a source with explicit download permission.",
+            "Apple Music and Deezer search results provide preview clips, not full songs. Full-track downloads require a source that explicitly permits downloading.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
