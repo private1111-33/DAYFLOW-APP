@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TaskAlt
@@ -35,7 +36,8 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenPlanner: () -> Unit,
     onOpenAlarms: () -> Unit,
-    onOpenVocabulary: () -> Unit
+    onOpenVocabulary: () -> Unit,
+    onOpenMusic: () -> Unit
 ) {
     val context = LocalContext.current
     val today = LocalDate.now().toEpochDay()
@@ -76,7 +78,8 @@ fun HomeScreen(
             listOf(
                 Triple("Add task", Icons.Default.TaskAlt, onOpenPlanner),
                 Triple("Set alarm", Icons.Default.Alarm, onOpenAlarms),
-                Triple("Vocabulary", Icons.Default.MenuBook, onOpenVocabulary)
+                Triple("Vocabulary", Icons.Default.MenuBook, onOpenVocabulary),
+                Triple("Play Music", Icons.Default.MusicNote, onOpenMusic)
             ).forEach { action ->
                 Card(onClick = action.third, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(containerColor = Surface)) {
