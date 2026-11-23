@@ -81,7 +81,8 @@ fun DayflowApp() {
                     onOpenSettings = { navController.navigate("settings") { launchSingleTop = true } },
                     onOpenPlanner = { openTab("planner") },
                     onOpenAlarms = { openTab("alarms") },
-                    onOpenVocabulary = { navController.navigate("vocabulary") { launchSingleTop = true } }
+                    onOpenVocabulary = { navController.navigate("vocabulary") { launchSingleTop = true } },
+                    onOpenMusic = { openTab("music") }
                 )
             }
             composable("planner") { PlannerScreen() }
