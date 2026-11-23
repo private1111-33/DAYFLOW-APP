@@ -11,6 +11,9 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -48,7 +51,7 @@ fun DayflowApp() {
     Scaffold(
         containerColor = Background,
         bottomBar = {
-            NavigationBar(containerColor = Surface, contentColor = MaterialTheme.colorScheme.onSurface) {
+            NavigationBar(containerColor = Color(0xFF100D10), contentColor = MaterialTheme.colorScheme.onSurface, tonalElevation = 0.dp) {
                 items.forEach { item ->
                     NavigationBarItem(
                         selected = route == item.route || (item.route == "music" && route == "discover"),
@@ -56,11 +59,11 @@ fun DayflowApp() {
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label, maxLines = 1, style = MaterialTheme.typography.labelSmall) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = SurfaceElevated,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary
+                            selectedIconColor = Color(0xFFFFB3C8),
+                            selectedTextColor = Color(0xFFFFB3C8),
+                            indicatorColor = Color(0xFF58172F),
+                            unselectedIconColor = Color(0xFF8E858B),
+                            unselectedTextColor = Color(0xFF8E858B)
                         )
                     )
                 }
