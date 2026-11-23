@@ -1,6 +1,8 @@
 package com.dayflow.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,12 +11,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.dayflow.app.ui.theme.*
 
 @Composable
 fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().background(Background).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
+        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Background, Color(0xFF12090E), Background))).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content
     )
@@ -30,15 +33,15 @@ fun SectionTitle(title: String, subtitle: String? = null) {
 
 @Composable
 fun DayflowCard(onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
-    val shape = RoundedCornerShape(18.dp)
-    val colors = CardDefaults.cardColors(containerColor = Surface)
+    val shape = RoundedCornerShape(24.dp)
+    val colors = CardDefaults.cardColors(containerColor = Color(0xFF171417))
     val inner: @Composable ColumnScope.() -> Unit = {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
     }
     if (onClick != null) {
-        Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = shape, colors = colors, content = inner)
+        Card(onClick = onClick, modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF33212A), shape), shape = shape, colors = colors, content = inner)
     } else {
-        Card(modifier = Modifier.fillMaxWidth(), shape = shape, colors = colors, content = inner)
+        Card(modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF33212A), shape), shape = shape, colors = colors, content = inner)
     }
 }
 
@@ -47,7 +50,7 @@ fun AccentButton(text: String, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = Burgundy),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     ) { Text(text) }
 }
 
