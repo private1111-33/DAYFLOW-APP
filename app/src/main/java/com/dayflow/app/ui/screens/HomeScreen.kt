@@ -3,6 +3,7 @@ package com.dayflow.app.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.ChevronRight
@@ -77,14 +78,14 @@ fun HomeScreen(
                 Triple("Set alarm", Icons.Default.Alarm, onOpenAlarms),
                 Triple("Vocabulary", Icons.Default.MenuBook, onOpenVocabulary)
             ).forEach { action ->
-                DayflowCard(onClick = action.third) {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(Burgundy.copy(alpha = 0.38f)), contentAlignment = Alignment.Center) {
-                                Icon(action.second, null, tint = BurgundyLight)
-                            }
-                            Text(action.first, color = TextPrimary, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                Card(onClick = action.third, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Surface)) {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(Burgundy.copy(alpha = 0.38f)), contentAlignment = Alignment.Center) {
+                            Icon(action.second, null, tint = BurgundyLight)
                         }
+                        Text(action.first, color = TextPrimary, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
             }
